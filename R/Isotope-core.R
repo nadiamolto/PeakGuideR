@@ -3,7 +3,7 @@
 # Isotope detection module:Only those peaks that have a high score will pass to the next step
 # ============================================================================================
 #
-# This function computes R^2 colocalization between M+0 and its isotopic
+# This function computes colocalization between M+0 and its isotopic
 # candidates (M+1..M+K) across pixels. It supports:
 #   - 13C series (Δ ≈ 1.003355 / z) for k = 1..max_iso (maximum number the isotopes to look for)
 #   - optional "heavy" ~2 Da M+2 candidates (Cl/Br/S) at Δ ≈ 2 / z
@@ -275,5 +275,12 @@ iso_morphology_series_binsafe <- function(
   
   out <- do.call(rbind, out)
   rownames(out) <- NULL
-  out
+
+  # Keep only rows with at least one morphology score
+  out <- out[!is.na(out$score_morph), , drop = FALSE]
+  
+  # Drop columns that are completely NA
+  out <- out[, colSums(!is.na(out)) > 0, drop = FALSE]
+  
+  return(out)
 }
