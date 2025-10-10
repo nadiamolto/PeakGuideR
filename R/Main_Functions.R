@@ -1,4 +1,6 @@
 
+#Function to convert a cardinal object to a peakmatrix
+
 cardinal_to_peakmatrix <- function(
     x,
     value = NULL,        # intensity by deffect
@@ -10,7 +12,7 @@ cardinal_to_peakmatrix <- function(
     stop("`x` must be a MSImagingExperiment (Cardinal ≥ 3.x).", call. = FALSE)
   }
   
-  # --- layer---
+  # 
   img <- Cardinal::imageData(x)
   avail <- names(img)
   
@@ -28,7 +30,7 @@ cardinal_to_peakmatrix <- function(
                  value, paste(avail, collapse = ", ")), call. = FALSE)
   }
   
-  # --- features x spectra -> pixels x features ---
+  # t(features x spectra) 
   intens_layer <- img[[value]]
   if (is.matrix(intens_layer)) {
     M <- intens_layer
@@ -40,7 +42,7 @@ cardinal_to_peakmatrix <- function(
   }
   intensity <- t(M)  # pixels x features
   
-  # --- mass vector (m/z) ---
+  # mz
   mass <- tryCatch({
     fd <- as.data.frame(Cardinal::featureData(x))
     if ("mz" %in% names(fd)) as.numeric(fd$mz) else as.numeric(Cardinal::mz(x))
@@ -51,7 +53,7 @@ cardinal_to_peakmatrix <- function(
     mass <- seq_len(ncol(intensity))
   }
   
-  # --- binSize ---
+  # binSize 
   binSize <- rep(NA_real_, length(mass))
   if (length(mass) >= 2) {
     dm <- diff(mass)
@@ -64,7 +66,7 @@ cardinal_to_peakmatrix <- function(
     }
   }
   
-  # --- pixel positions ---
+  # coordinates
   pd <- tryCatch(as.data.frame(Cardinal::pixelData(x)),
                  error = function(e) stop("Could not access pixelData(x).", call. = FALSE))
   if (!all(c("x","y") %in% names(pd))) {
@@ -74,24 +76,24 @@ cardinal_to_peakmatrix <- function(
   rownames(pos) <- NULL
   posMotors <- pos
   
-  # --- normalizations ---
+  # niormalizations
   TIC <- rowSums(intensity, na.rm = TRUE)
   RMS <- sqrt(rowMeans(intensity^2, na.rm = TRUE))
   MAX <- apply(intensity, 1L, function(v) if (all(is.na(v))) NA_real_ else max(v, na.rm = TRUE))
   normalizations <- data.frame(TIC = TIC, RMS = RMS, MAX = MAX, row.names = NULL)
   
-  # --- SNR & area ---
+  # SNR
   nPix <- nrow(intensity); nFeat <- ncol(intensity)
   if (is.null(snr))  snr  <- matrix(0, nrow = nPix, ncol = nFeat)
   if (is.null(area)) area <- matrix(0, nrow = nPix, ncol = nFeat)
   
-  # --- name ---
+  # names
   if (is.null(dataset_name)) {
     rn <- tryCatch(Cardinal::runNames(x), error = function(e) NULL)
     dataset_name <- if (!is.null(rn) && length(rn) >= 1 && nzchar(rn[1])) rn[1] else "cardinal_import"
   }
   
-  # --- rMSI2 peakmatrix achitecture ---
+  # rMSI2 peakmatrix structure
   pkm_rms <- list(
     mass           = mass,
     binSize        = binSize,
