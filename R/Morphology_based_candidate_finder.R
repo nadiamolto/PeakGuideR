@@ -3,7 +3,7 @@
 #' @description
 #' Detects potential isotopic relationships between peaks in a Mass Spectrometry
 #' Imaging (MSI) peak matrix based on expected mass differences and spatial
-#' colocalization. It computes correlation-like morphology metrics (Pearson,
+#' colocalization (correlation). It computes correlation-like morphology metrics (Pearson,
 #' cosine, or Spearman), optionally evaluates spatial consistency across tiles,
 #' and returns all isotopic pairs that satisfy mass tolerance and a minimum
 #' similarity threshold.
@@ -15,7 +15,7 @@
 #' candidates at theoretical mass differences for z = 1:
 #'
 #' - **13C series:** M+1 = 1.003355, M+2 = 2 × 1.003355  
-#' - **Heavy isotopes (M+2 level):**  
+#' - **Other isotopes (M+X level):**  
 #'   34S = 1.99580, 37Cl = 1.99705, 81Br = 1.99795, 18O = 2.004245
 #'
 #' **Tolerance modes:**
@@ -25,8 +25,11 @@
 #' **Preprocessing steps per intensity pair:**
 #' 1. Remove paired zeros (`x==0 & y==0`).
 #' 2. Exclude pixels where both intensities lie below the pooled `min_quantile`.
-#' 3. Optionally clip negatives (`clip_negatives=TRUE`).
-#' 4. Apply intensity transform (`none`, `log1p`, or `zscore`).
+#' 3. Optionally clip negatives (`clip_negatives=TRUE`). 
+#' 4. Apply intensity transform (`none`, `log1p`, or `zscore`). Scoring metrics should be considered before setting 
+#'    the transformation method: zscore is recommended for pearson correlation, log1p or none for cosine similarity
+#'    and none for spearman.
+#'    Normalization can be applied (e.g. TIC) before it but should be considered regarding result interpretation.
 #'
 #' **Scoring metrics (`method`):**
 #' - `"pearson"`: squared Pearson correlation (R²), [0,1].
@@ -45,16 +48,19 @@
 #'
 #' and blended with the global score:
 #' \deqn{ score\_final = \alpha \cdot score\_global + (1-\alpha) \cdot tile\_consistency }
+#' Alpha will be set by the user giving weights to global and tile analysis.
 #'
 #' **Output policy:**
 #' Returns *all* isotopic candidate pairs (M+0... M+k) that fall within the mass
 #' tolerance and have `score_final ≥ min_score_keep`.
+#' A dataframe with as many rows as isotopes are found.
 #'
 #' @param pm A list with:
 #'   - `mass`: numeric vector of m/z values.
 #'   - `intensity`: matrix [pixels × features].
 #'   - optional `pos`: data.frame/matrix with `x` and `y` coordinates for pixels
 #'     (without it, tile strategy is disabled with an info message).
+#'     Position information is recommended to get more reliable results.
 #' @param prefer_mode `"ppm"` (default) or `"dp"`. Tolerance mode.
 #' @param tol_ppm Numeric, mass window (±ppm). Default `5`.
 #' @param tol_dp Integer, window in indices if `prefer_mode="dp"`. Default `3L`.
@@ -137,10 +143,10 @@ iso_morphology_candidates <- function(
   }
   
   # ---- Sort by m/z ----
-  ord   <- order(mass)
-  mass  <- mass[ord]
-  Imat  <- Imat[, ord, drop=FALSE]
-  p     <- ncol(Imat)
+  ord   <- order(mass) #From lower to higher
+  mass  <- mass[ord]  #Mass reordering
+  Imat  <- Imat[, ord, drop=FALSE] #Matrix reordering including intensities
+  p     <- ncol(Imat) #Number of masses
   
   # ---- Isotopic deltas for z = 1 (fixed) ----
   iso_table <- (function() {
@@ -159,24 +165,24 @@ iso_morphology_candidates <- function(
   get_candidates <- if (prefer_mode == "ppm") {
     function(target) {
       tol <- target * tol_ppm * 1e-6
-      which(abs(mass - target) <= tol)
+      which(abs(mass - target) <= tol) #Lower than the tolerance 
     }
   } else {
     function(target) {
-      k <- findInterval(target, mass)
-      seq.int(max(1L, k - tol_dp), min(p, k + tol_dp))
+      k <- findInterval(target, mass) #In which interval the target is 
+      seq.int(max(1L, k - tol_dp), min(p, k + tol_dp)) #index sequence generator into the tolerance window
     }
   }
   
   # ---- Preprocessing ----
   preprocess_xy <- function(x, y) {
-    keep <- is.finite(x) & is.finite(y) & !(x == 0 & y == 0)
-    if (min_quantile > 0 && any(keep)) {
-      pool <- c(x[keep], y[keep])
-      cutoff <- stats::quantile(pool, probs=min_quantile, na.rm=TRUE, type=7)
-      keep <- keep & !(x <= cutoff & y <= cutoff)
+    keep <- is.finite(x) & is.finite(y) & !(x == 0 & y == 0) #boolean
+    if (min_quantile > 0 && any(keep)) { #quantil filter
+      pool <- c(x[keep], y[keep]) #keep if true
+      cutoff <- stats::quantile(pool, probs=min_quantile, na.rm=TRUE, type=7) #lowest quantil using package stats
+      keep <- keep & !(x <= cutoff & y <= cutoff) #remove pixels under cutoff
     }
-    if (sum(keep) < 3L) return(NULL)
+    if (sum(keep) < 3L) return(NULL) #more than 3
     xk <- x[keep]; yk <- y[keep]
     if (clip_negatives) { xk <- pmax(xk, 0); yk <- pmax(yk, 0) }
     tf <- switch(transform,
@@ -321,19 +327,3 @@ iso_morphology_candidates <- function(
 
 
 
-
-
-res <- iso_morphology_candidates(
-  pkm_brain,                     
-  prefer_mode   = "ppm",
-  tol_ppm       = 3,
-  method        = "pearson",
-  transform     = "log1p",
-  min_quantile  = 0.01,
-  clip_negatives= TRUE,
-  use_tiles     = TRUE,
-  tiles         = 9L,
-  tile_blend    = "median",
-  tile_alpha    = 0.8,
-  tile_threshold= 0.8,
-  min_score_keep= 0.5)
