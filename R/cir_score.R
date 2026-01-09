@@ -57,7 +57,7 @@ cir_score <- function(result, pkm,
   I_M0_f[!mask_valid] <- NA
   I_M1_f[!mask_valid] <- NA
 
-  R_obs_pixel <- I_M1_f / I_M0_f
+  R_obs_pixel <- I_M1_f / pmax(I_M0_f, 1e-6) # observed ratio
   if (ratio_method == "mean") {
     R_obs <- colMeans(R_obs_pixel, na.rm = TRUE)
   } else if (ratio_method == "median") {
@@ -71,9 +71,10 @@ cir_score <- function(result, pkm,
   R_theo <- cir_ratio(mz_mono)
 
   # CIR validation
-  cir_rel_err <- abs(R_obs - R_theo) / pmax(R_theo, 1e-6)
+  cir_rel_err <- abs(R_obs - R_theo) / pmax(R_theo, 1e-6) # pmax to avoid divide by 0.
   is_valid_c13 <- cir_rel_err < cir_rel_tol
-  cir_score <- pmin(1, 1 - cir_rel_err)  # [0,1]
+  sigma_cir<- cir_rel_tol/2
+  cir_score <- exp(- (cir_rel_err^2) / (2* sigma_cir^2))  # gaussian and non-lineal model
 
   # data frame as result
   data.frame(
