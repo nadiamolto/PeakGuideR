@@ -18,7 +18,7 @@
 #' }
 #' @export
 cir_score <- function(result, pkm,
-                      min_score_final = 0.6, # 1-extrapolation error
+                      min_score_final = 0.6, #From the morph score result
                       cir_rel_tol = 0.2, # interpolation relative error accepted to consider a candidate
                       ratio_method = c("mean", "median", "sum")) {
 
@@ -42,8 +42,22 @@ cir_score <- function(result, pkm,
   I_M0 <- pkm$intensity[, idx_M0, drop = FALSE]
   I_M1 <- pkm$intensity[, idx_M1, drop = FALSE]
 
-  # Observed ratios
-  R_obs_pixel <- I_M1 / pmax(I_M0, 1e-6)
+  # Observed ratios (considering pixel noise filtering)
+
+  min_I_M0 <- apply(I_M0, 2, function(x) {
+    stats::quantile(x, probs=0.1, na.rm=TRUE)}) #intensities lower than quantile 0.1 for each pixel.
+  min_I_M1 <- apply(I_M1, 2, function(x) {
+    stats::quantile(x, probs=0.1, na.rm=TRUE)})
+
+  #if they are too low
+  mask_valid<- sweep(I_M0, 2, min_I_M0, FUN= ">") & sweep(I_M1, 2, min_I_M1, FUN=">") # column by column,
+  #Apply the mask:
+  I_M0_f<- I_M0
+  I_M1_f <-I_M1
+  I_M0_f[!mask_valid] <- NA
+  I_M1_f[!mask_valid] <- NA
+
+  R_obs_pixel <- I_M1_f / I_M0_f
   if (ratio_method == "mean") {
     R_obs <- colMeans(R_obs_pixel, na.rm = TRUE)
   } else if (ratio_method == "median") {
@@ -72,4 +86,5 @@ cir_score <- function(result, pkm,
   )
 }
 
-#apply function: cir_results <-result_cir<- cir_score(result, pkm, min_score_final = 0.6)
+#apply function: cir_results <-
+result_cir_test<- cir_score(result, pkm, min_score_final = 0.6)
