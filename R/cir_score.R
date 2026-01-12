@@ -87,5 +87,4 @@ cir_score <- function(result, pkm,
   )
 }
 
-#apply function: cir_results <-
-result_cir_test<- cir_score(result, pkm, min_score_final = 0.6)
+#apply function: cir_results <-result_cir_test<- cir_score(result, pkm, min_score_final = 0.6)
