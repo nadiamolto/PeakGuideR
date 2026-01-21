@@ -14,8 +14,8 @@
 #' For each monoisotopic feature (M+0), the function searches isotopic
 #' candidates at theoretical mass differences for z = 1:
 #'
-#' - **13C series:** M+1 = 1.003355, M+2 = 2 × 1.003355  
-#' - **Other isotopes (M+X level):**  
+#' - **13C series:** M+1 = 1.003355, M+2 = 2 × 1.003355
+#' - **Other isotopes (M+X level):**
 #'   34S = 1.99580, 37Cl = 1.99705, 81Br = 1.99795, 18O = 2.004245
 #'
 #' **Tolerance modes:**
@@ -25,8 +25,8 @@
 #' **Preprocessing steps per intensity pair:**
 #' 1. Remove paired zeros (`x==0 & y==0`).
 #' 2. Exclude pixels where both intensities lie below the pooled `min_quantile`.
-#' 3. Optionally clip negatives (`clip_negatives=TRUE`). 
-#' 4. Apply intensity transform (`none`, `log1p`, or `zscore`). Scoring metrics should be considered before setting 
+#' 3. Optionally clip negatives (`clip_negatives=TRUE`).
+#' 4. Apply intensity transform (`none`, `log1p`, or `zscore`). Scoring metrics should be considered before setting
 #'    the transformation method: zscore is recommended for pearson correlation, log1p or none for cosine similarity
 #'    and none for spearman.
 #'    Normalization can be applied (e.g. TIC) before it but should be considered regarding result interpretation.
@@ -128,30 +128,34 @@ iso_morphology_candidates <- function(
   method      <- match.arg(method)
   transform   <- match.arg(transform)
   tile_blend  <- match.arg(tile_blend)
-  
+
   # ---- Validate input ----
   stopifnot(is.list(pm), !is.null(pm$mass), !is.null(pm$intensity))
   mass <- as.numeric(pm$mass)
   Imat <- pm$intensity
   stopifnot(is.numeric(mass), is.matrix(Imat), length(mass) == ncol(Imat))
-  
+
   # ---- Handle coordinates ----
   pos_xy <- if (!is.null(pm$pos) && all(c("x","y") %in% colnames(pm$pos))) pm$pos else NULL
   if (isTRUE(use_tiles) && is.null(pos_xy)) {
     message("[INFO] No 'x','y' coordinates found in pm$pos. Tile analysis disabled.")
     use_tiles <- FALSE
   }
-  
+
   # ---- Sort by m/z ----
   ord   <- order(mass) #From lower to higher
   mass  <- mass[ord]  #Mass reordering
   Imat  <- Imat[, ord, drop=FALSE] #Matrix reordering including intensities
   p     <- ncol(Imat) #Number of masses
-  
+
   # ---- Isotopic deltas for z = 1 (fixed) ----
   iso_table <- (function() {
     d13C  <- 1.003355
-    heavy <- c(S34=1.99580, Cl37=1.99705, Br81=1.99795, O18=2.004245)
+    heavy <- c(N15=0.997035,
+               S34=1.99580,
+               Cl37=1.99705,
+               Br81=1.99795,
+               O18=2.004245)
     data.frame(
       iso_type = c("C13_M1", "C13_2", names(heavy)),
       k        = c(1L, 2L, rep(2L, length(heavy))),
@@ -160,20 +164,20 @@ iso_morphology_candidates <- function(
       stringsAsFactors = FALSE
     )
   })()
-  
+
   # ---- Candidate finder ----
   get_candidates <- if (prefer_mode == "ppm") {
     function(target) {
       tol <- target * tol_ppm * 1e-6
-      which(abs(mass - target) <= tol) #Lower than the tolerance 
+      which(abs(mass - target) <= tol) #Lower than the tolerance
     }
   } else {
     function(target) {
-      k <- findInterval(target, mass) #In which interval the target is 
+      k <- findInterval(target, mass) #In which interval the target is
       seq.int(max(1L, k - tol_dp), min(p, k + tol_dp)) #index sequence generator into the tolerance window
     }
   }
-  
+
   # ---- Preprocessing ----
   preprocess_xy <- function(x, y) {
     keep <- is.finite(x) & is.finite(y) & !(x == 0 & y == 0) #boolean
@@ -194,7 +198,7 @@ iso_morphology_candidates <- function(
                  })
     list(x=tf(xk), y=tf(yk))
   }
-  
+
   # ---- Scoring ----
   score_core <- function(x, y) {
     if (length(x) != length(y) || length(x) < 3L) return(NA_real_)
@@ -213,7 +217,7 @@ iso_morphology_candidates <- function(
              if (is.na(r) || r <= 0) 0 else max(0, min(1, r*r))
            })
   }
-  
+
   # ---- Tile scoring ----
   split_into_tiles <- function(pos_xy, n_tiles) {
     s <- max(1L, round(sqrt(n_tiles)))
@@ -226,7 +230,7 @@ iso_morphology_candidates <- function(
     ty <- cut(pos_xy[, "y"], breaks = ybreaks, include.lowest = TRUE, labels = FALSE)
     paste(tx, ty, sep="_")
   }
-  
+
   tile_scores <- function(I0, Ik) {
     ids <- split_into_tiles(pos_xy, tiles)
     uids <- unique(ids)
@@ -245,7 +249,7 @@ iso_morphology_candidates <- function(
       sd         = stats::sd(scores, na.rm=TRUE)
     )
   }
-  
+
   # ---- Iterate over anchors ----
   rows <- list(); rr <- 0L
   for (i in seq_len(p)) {
@@ -256,17 +260,17 @@ iso_morphology_candidates <- function(
       zfix     <- 1L
       d        <- iso_table$delta[h]
       target   <- mz0 + d
-      
+
       cand_idx <- get_candidates(target)
       cand_idx <- setdiff(cand_idx, i)
       if (!length(cand_idx)) next
-      
+
       for (j in cand_idx) {
         pp <- preprocess_xy(I0, Imat[, j])
         if (is.null(pp)) next
-        
+
         s_global <- score_core(pp$x, pp$y)
-        
+
         tile_summary <- NA_real_; tile_sd <- NA_real_; tile_consistency <- NA_real_
         if (use_tiles && !is.null(pos_xy)) {
           ts <- tile_scores(I0, Imat[, j])
@@ -277,15 +281,15 @@ iso_morphology_candidates <- function(
           tile_sd <- ts$sd
           tile_consistency <- if (is.finite(tile_sd)) max(0, 1 - tile_sd) else NA_real_
         }
-        
+
         s_final <- if (is.finite(tile_consistency))
           tile_alpha * s_global + (1 - tile_alpha) * tile_consistency else s_global
-        
+
         if (is.na(s_final) || s_final < min_score_keep) next
-        
+
         err_da  <- mass[j] - target
         err_ppm <- 1e6 * (mass[j] - target) / target
-        
+
         rr <- rr + 1L
         rows[[rr]] <- data.frame(
           idx_M0          = i,
@@ -307,7 +311,7 @@ iso_morphology_candidates <- function(
       }
     }
   }
-  
+
   if (!length(rows)) {
     return(data.frame(
       idx_M0=integer(), mz_M0=numeric(), iso_type=character(),
@@ -318,7 +322,7 @@ iso_morphology_candidates <- function(
       mass_err_ppm=numeric(), stringsAsFactors=FALSE
     ))
   }
-  
+
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
   out
