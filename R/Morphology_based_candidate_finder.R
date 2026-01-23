@@ -123,7 +123,7 @@ iso_morphology_candidates <- function(
     tile_threshold = 0.8,
     min_score_keep = 0.2
 ) {
-  # ---- Argument normalization ----
+  #  Argument normalization
   prefer_mode <- match.arg(prefer_mode)
   method      <- match.arg(method)
   transform   <- match.arg(transform)
@@ -135,37 +135,46 @@ iso_morphology_candidates <- function(
   Imat <- pm$intensity
   stopifnot(is.numeric(mass), is.matrix(Imat), length(mass) == ncol(Imat))
 
-  # ---- Handle coordinates ----
+  # Handle coordinates
   pos_xy <- if (!is.null(pm$pos) && all(c("x","y") %in% colnames(pm$pos))) pm$pos else NULL
   if (isTRUE(use_tiles) && is.null(pos_xy)) {
     message("[INFO] No 'x','y' coordinates found in pm$pos. Tile analysis disabled.")
     use_tiles <- FALSE
   }
 
-  # ---- Sort by m/z ----
+  # Sort by m/z
   ord   <- order(mass) #From lower to higher
   mass  <- mass[ord]  #Mass reordering
   Imat  <- Imat[, ord, drop=FALSE] #Matrix reordering including intensities
   p     <- ncol(Imat) #Number of masses
 
+  # Isotopic deltas for z = 1 (fixed)
   # ---- Isotopic deltas for z = 1 (fixed) ----
   iso_table <- (function() {
-    d13C  <- 1.003355
-    heavy <- c(N15=0.997035,
-               S34=1.99580,
-               Cl37=1.99705,
-               Br81=1.99795,
-               O18=2.004245)
+    d13C <- 1.003355
+
     data.frame(
-      iso_type = c("C13_M1", "C13_2", names(heavy)),
-      k        = c(1L, 2L, rep(2L, length(heavy))),
-      z        = 1L,
-      delta    = c(d13C, 2*d13C, unname(heavy)),
+      iso_type = c(
+        "C13_M1", "C13_M2",
+        "N15_M1",
+        "S34_M2", "Cl37_M2", "Br81_M2", "O18_M2"
+      ),
+      k = c(
+        1L, 2L,
+        1L,
+        2L, 2L, 2L, 2L
+      ),
+      z = 1L,
+      delta = c(
+        d13C, 2*d13C,
+        0.997035,
+        1.99580, 1.99705, 1.99795, 2.004245
+      ),
       stringsAsFactors = FALSE
     )
   })()
 
-  # ---- Candidate finder ----
+  # Candidate finder
   get_candidates <- if (prefer_mode == "ppm") {
     function(target) {
       tol <- target * tol_ppm * 1e-6
@@ -178,7 +187,7 @@ iso_morphology_candidates <- function(
     }
   }
 
-  # ---- Preprocessing ----
+  # Preprocessing
   preprocess_xy <- function(x, y) {
     keep <- is.finite(x) & is.finite(y) & !(x == 0 & y == 0) #boolean
     if (min_quantile > 0 && any(keep)) { #quantil filter
@@ -199,7 +208,7 @@ iso_morphology_candidates <- function(
     list(x=tf(xk), y=tf(yk))
   }
 
-  # ---- Scoring ----
+  # Scoring
   score_core <- function(x, y) {
     if (length(x) != length(y) || length(x) < 3L) return(NA_real_)
     if (stats::var(x)==0 || stats::var(y)==0) return(NA_real_)
@@ -218,7 +227,7 @@ iso_morphology_candidates <- function(
            })
   }
 
-  # ---- Tile scoring ----
+  # Tile scoring
   split_into_tiles <- function(pos_xy, n_tiles) {
     s <- max(1L, round(sqrt(n_tiles)))
     xbreaks <- unique(stats::quantile(pos_xy[, "x"], seq(0,1,length.out=s+1), na.rm=TRUE, type=7))
@@ -250,7 +259,7 @@ iso_morphology_candidates <- function(
     )
   }
 
-  # ---- Iterate over anchors ----
+  # Iterate over anchors
   rows <- list(); rr <- 0L
   for (i in seq_len(p)) {
     mz0 <- mass[i]; I0 <- Imat[, i]
