@@ -1,3 +1,14 @@
 ^PeakGuideR\.Rproj$
 ^\.Rproj\.user$
 ^data-raw$
+^LICENSE$
+^\.git$
+^\.gitignore$
+^\.github$
+^README\.Rmd$
+^README_files$
+^\.RData$
+^\.Rhistory$
+^\.DS_Store$
+^.*\.tar\.gz$
+^.*\.Rcheck$

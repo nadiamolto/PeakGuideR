@@ -1,14 +1,42 @@
 Package: PeakGuideR
-Title: What the Package Does (One Line, Title Case)
+Title: Evidence-Based Annotation of MALDI-MSI Metabolites Features
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    c(person(
+    given= "Nadia", 
+    family= "Molto", 
+    email= "nadia.molto@gmail.com",
+    role = c("aut", "cre"),
+    comment = c(ORCID= "0009-0003-0042-4997")))
+Description: Provides tools for evidence-based annotation of MALDI mass spectrometry imaging features from peak matrix data. PeakGuideR integrates isotope morphology detection, 
+    carbon isotope-ratio validation, elemental isotope-pattern support, adduct-family detection, and optional neutral-mass database matching.
+    Optional compound and strandard-adduct databases included with the package are intended for non-comercial research use and may be subject to third party data licencing terms.
+URL: https://github.com/nadiamolto/PeakGuideR, https://doi.org/10.5281/zenodo.20705395
+License: GPL-3
 Encoding: UTF-8
+LazyDataCompression: xz
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Depends: 
-    R (>= 3.5)
+    R (>= 4.1)
+Imports:
+    dplyr,
+    methods,
+    stats,
+    tidyr,
+    utils
+Suggests:
+    devtools,
+    Cardinal,
+    mgcv,
+    purrr,
+    usethis,
+    igraph,
+    knitr,
+    rmarkdown
+biocViews:
+    MassSpectrometry,
+    Metabolomics,
+    ImagingMassSpectrometry
 LazyData: true
+Config/roxygen2/version: 8.0.0
+VignetteBuilder: knitr

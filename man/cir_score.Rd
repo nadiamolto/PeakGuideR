@@ -2,14 +2,17 @@
 % Please edit documentation in R/cir_score.R
 \name{cir_score}
 \alias{cir_score}
-\title{CIR score for C13 M+1 validation}
+\title{CIR score
+#' Validate C13 M+1 candidates using carbon isotope ratios}
 \usage{
 cir_score(
   result,
   pkm,
   min_score_final = 0.6,
-  cir_rel_tol = 0.2,
-  ratio_method = c("mean", "median", "sum")
+  cir_rel_tol = 0.3,
+  ratio_method = c("sum", "mean", "median"),
+  min_quantile = 0.01,
+  mask_strategy = c("M0_only", "AND")
 )
 }
 \arguments{
@@ -17,22 +20,31 @@ cir_score(
 
 \item{pkm}{Peak matrix list (\code{mass}, \code{intensity})}
 
-\item{min_score_final}{Minimum \code{score_final} threshold \link{0,1}. Default: 0.6}
+\item{min_score_final}{Minimum \code{score_final} threshold in the range 0 to 1. Default: 0.6}
 
-\item{cir_rel_tol}{CIR relative tolerance \link{0,1}. Default: 0.2}
+\item{cir_rel_tol}{CIR relative tolerance in the range 0 to 1. Default: 0.3}
 
-\item{ratio_method}{\code{"mean"} (default), \code{"median"}, or \code{"sum"} for I_M1/I_M0}
+\item{ratio_method}{\code{"sum"} (default), \code{"median"}, or \code{"mean"} for I_M1/I_M0}
+
+\item{min_quantile}{Quantile mask for M0 intensities. Default 0.01}
+
+\item{mask_strategy}{\code{"M0_only"} (recommended) or \code{"AND"}. Default \code{"M0_only"}.}
 }
 \value{
-Enhanced data frame:
-\itemize{
-\item \code{R_obs}: observed I_M1/I_M0 ratio
-\item \code{R_theo}: theoretical CIR from GAM
-\item \code{cir_rel_err}: relative error
-\item \code{is_valid_c13}: cir_rel_err < cir_rel_tol
-\item \code{cir_score}: 1 - cir_rel_err \link{0,1}
-}
+A data.frame with one row per C13 M+1 candidate and the following
+additional columns: \code{R_obs}, \code{R_theo}, \code{cir_rel_err},
+\code{is_valid_c13_raw}, \code{cir_score}, \code{cir_class}, \code{is_chained_c13},
+\code{is_valid_c13}, \code{has_C13_M2}, \code{idx_C13_M2}, \code{mz_C13_M2} and
+\code{score_C13_M2}.
 }
 \description{
+Filters C13 M+1 candidates from \code{iso_morphology_candidates()} and compares
+the observed M+1/M+0 intensity ratio against the theoretical carbon isotope
+ratio expected for the monoisotopic m/z.
+}
+\details{
+The function is intended to add isotope-ratio evidence to morphology-based
+C13 candidates. It does not assign definitive isotope annotations by itself.
+
 Filters C13_M1 candidates and validates against theoretical ratios.
 }

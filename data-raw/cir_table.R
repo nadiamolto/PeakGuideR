@@ -12,44 +12,27 @@
 # Cause: P(1)/P(0) = (nC*P13C)/ (1-P13C) --> nC*P13C
 
 library(dplyr)
+library(mgcv)
+
+devtools::load_all() #to use parse_formula function
 
 #Filter the fields of interest (formula and monoisotopic mass from my db)
 db<- ref_database %>% transmute(formula= MolecularFormula,
                                 mz_mono= MonoisotopicMass) %>%
   filter(!is.na(formula), !is.na(mz_mono))
 
-#Count carbons in each formula
-parse_formula <- function(formula) {
-  m <- gregexpr("([A-Z][a-z]?)([0-9]*)", formula, perl = TRUE)
-  parts <- regmatches(formula, m)[[1]]
-  elems <- gsub("([A-Z][a-z]?)([0-9]*)", "\\1", parts, perl = TRUE)
-  nums  <- gsub("([A-Z][a-z]?)([0-9]*)", "\\2", parts, perl = TRUE)
-  nums[nums == ""] <- "1"
-  counts <- as.numeric(nums)
-  tapply(counts, elems, sum)
-}
-
-#Apply function getting an object with the number of C
-nC <- vapply(db$formula, function(f) {
-  cf <- parse_formula(f)
-  if ("C" %in% names(cf)) cf[["C"]] else 0L
-}, numeric(1))
-
-
 # theoretical ratio mz_theo
 db_C <- db %>%
-  dplyr::mutate(
+  mutate(
     nC = vapply(formula, function(f) {
       cf <- parse_formula(f)          # tu función de antes
       if ("C" %in% names(cf)) cf[["C"]] else 0L
     }, numeric(1)),
-    R_theo = nC * 0.0107              # p_13C
+    R_theo = nC * isotope_abundance["C13"]             # p_13C
   ) %>%
   filter(nC > 0)
 
 # GAM model
-
-library(mgcv)
 
 fit_cir <- gam(
   R_theo ~ s(mz_mono, k = 20), #soft function
@@ -59,9 +42,11 @@ fit_cir <- gam(
   gamma=1.2 # To ensure a conservative curve (it penalizes if the curve is not soft)
 )
 
-gam.check(fit_cir)  # check if the parametres are fitted
+
+###### internal checkpoint
+#gam.check(fit_cir)  # check if the parametres are fitted
 #I can see that there is more variability for higher mz values
-plot(fit_cir, shade = TRUE)  # plot
+#plot(fit_cir, shade = TRUE)  # plot
 
 
 grid_mz <- seq(100, 1200, by = 1)  # it creates a vector of 1101 values.

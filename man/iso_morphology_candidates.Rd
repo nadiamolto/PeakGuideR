@@ -2,15 +2,14 @@
 % Please edit documentation in R/Morphology_based_candidate_finder.R
 \name{iso_morphology_candidates}
 \alias{iso_morphology_candidates}
-\title{Isotopic morphology candidates: based on co-localization (z = 1 fixed)}
+\title{Detect isotope candidates using mass differences and ion-image morphology}
 \usage{
 iso_morphology_candidates(
-  pm,
+  pkm,
   prefer_mode = c("ppm", "dp"),
   tol_ppm = 5,
   tol_dp = 3L,
   method = c("pearson", "cosine", "spearman"),
-  use_intercept = FALSE,
   transform = c("none", "log1p", "zscore"),
   min_quantile = 0.01,
   clip_negatives = TRUE,
@@ -24,55 +23,56 @@ iso_morphology_candidates(
 )
 }
 \arguments{
-\item{pm}{A list with:
+\item{pkm}{A list with:
 \itemize{
-\item \code{mass}: numeric vector of m/z values.
-\item \code{intensity}: matrix \link{pixels × features}.
-\item optional \code{pos}: data.frame/matrix with \code{x} and \code{y} coordinates for pixels
+\item mass: numeric vector of m/z values.
+\item intensity: matrix pixel x feature.
+\item optional pos: data.frame/matrix with x and y coordinates for pixels
 (without it, tile strategy is disabled with an info message).
 Position information is recommended to get more reliable results.
 }}
 
-\item{prefer_mode}{\code{"ppm"} (default) or \code{"dp"}. Tolerance mode.}
+\item{prefer_mode}{"ppm" (default) or "dp". Tolerance mode.}
 
-\item{tol_ppm}{Numeric, mass window (±ppm). Default \code{5}.}
+\item{tol_ppm}{Numeric, mass window (±ppm). Default 5.}
 
-\item{tol_dp}{Integer, window in indices if \code{prefer_mode="dp"}. Default \code{3L}.}
+\item{tol_dp}{Integer, window in indices if prefer_mode="dp". Default 3L.}
 
-\item{method}{Character, morphology metric: \code{"pearson"} (default), \code{"cosine"}, or \code{"spearman"}.}
+\item{method}{Character, morphology metric: "pearson" (default), "cosine", or "spearman".}
 
-\item{use_intercept}{Logical, reserved for compatibility (currently unused). Default \code{FALSE}.}
+\item{transform}{One of "none", "log1p", "zscore". Default "none".}
 
-\item{transform}{One of \code{"none"}, \code{"log1p"}, \code{"zscore"}. Default \code{"log1p"}.}
+\item{min_quantile}{Numeric in the range 0 to 1, pooled lower quantile filter. Default 0.01.}
 
-\item{min_quantile}{Numeric in \link{0,1}, pooled lower quantile filter. Default \code{0.01}.}
+\item{clip_negatives}{Logical, clip negative values before transform. Default TRUE.}
 
-\item{clip_negatives}{Logical, clip negative values before transform. Default \code{TRUE}.}
+\item{use_tiles}{Logical, enable spatial tile evaluation if pkm$pos exists. Default TRUE.}
 
-\item{use_tiles}{Logical, enable spatial tile evaluation if \code{pm$pos} exists. Default \code{TRUE}.}
+\item{tiles}{Integer, approximate number of subregions. Default 9L.}
 
-\item{tiles}{Integer, approximate number of subregions. Default \code{9L}.}
+\item{tile_min_pixels}{Integer, minimum pixels per tile. Default 50L.}
 
-\item{tile_min_pixels}{Integer, minimum pixels per tile. Default \code{50L}.}
+\item{tile_blend}{One of "median", "p25", or "pass_rate". Default "median".}
 
-\item{tile_blend}{One of \code{"median"}, \code{"p25"}, or \code{"pass_rate"}. Default \code{"median"}.}
+\item{tile_alpha}{Numeric in the range 0 to 1, blending between global and tile score. Default 0.8.}
 
-\item{tile_alpha}{Numeric in \link{0,1}, blending between global and tile score. Default \code{0.8}.}
+\item{tile_threshold}{Numeric in the range 0 to 1, threshold for "pass_rate". Default 0.8.}
 
-\item{tile_threshold}{Numeric in \link{0,1}, threshold for \code{"pass_rate"}. Default \code{0.8}.}
-
-\item{min_score_keep}{Numeric in \link{0,1}, score threshold. Default \code{0.2}.}
+\item{min_score_keep}{Numeric in the range 0 to 1, score threshold. Default 0.2.}
 }
 \value{
-A \code{data.frame} with:
+A data.frame with:
 \itemize{
-\item \code{idx_M0}, \code{mz_M0}: anchor index and m/z.
-\item \code{iso_type}: isotope type (\code{C13_M1}, \code{C13_2}, \code{S34}, \code{Cl37}, \code{Br81}, \code{O18}).
-\item \code{k}: isotope level (1 or 2).
-\item \code{z}: charge state (always 1).
-\item \code{idx_cand}, \code{mz_cand}: candidate index and m/z.
-\item \code{score_global}, \code{tile_summary}, \code{tile_sd}, \code{tile_consistency}, \code{score_final}.
-\item \code{mass_err_da}, \code{mass_err_ppm}: candidate error vs theoretical mass.
+\item idx_M0, mz_M0: anchor index and m/z.
+\item iso_type: isotope type (C13_M1, C13_M2, S34, Cl37, Br81, O18,15N).
+\item element: (C.N,O,S,Cl,Br)
+\item k: isotope level (1 or 2).
+\item z: charge state (always 1).
+\item idx_cand, mz_cand: candidate index and m/z.
+\item score_global, tile_summary, tile_sd, tile_consistency, score_final.
+\item mass_err_da, mass_err_ppm: candidate error vs theoretical mass.
+\item mass dev_err, mass_dev_score: absolute mass error and corresponding
+mass deviation score.
 }
 }
 \description{
@@ -96,53 +96,60 @@ candidates at theoretical mass differences for z = 1:
 
 \strong{Tolerance modes:}
 \itemize{
-\item \code{"ppm"} (default): find candidates within ±\code{tol_ppm} ppm around the theoretical mass.
-\item \code{"dp"}: find candidates within ±\code{tol_dp} data points in the ordered mass axis.
+\item "ppm" (default): find candidates within ±tol_ppm ppm around the theoretical mass.
+\item "dp": find candidates within ±tol_dp data points in the ordered mass axis.
 }
 
 \strong{Preprocessing steps per intensity pair:}
 \enumerate{
-\item Remove paired zeros (\code{x==0 & y==0}).
-\item Exclude pixels where both intensities lie below the pooled \code{min_quantile}.
-\item Optionally clip negatives (\code{clip_negatives=TRUE}).
-\item Apply intensity transform (\code{none}, \code{log1p}, or \code{zscore}). Scoring metrics should be considered before setting
+\item Keep pixels where both features are detected (x!=0 & y!=0)
+#' 2. Apply feature-wise low-intensity quantile filters to the retained pixels.
+Pixels are kept only when both features are above their respective
+threshold.
+\item Optionally clip negatives (clip_negatives=TRUE).
+\item Apply intensity transform (none, log1p, or zscore). Scoring metrics should be considered before setting
 the transformation method: zscore is recommended for pearson correlation, log1p or none for cosine similarity
 and none for spearman.
 Normalization can be applied (e.g. TIC) before it but should be considered regarding result interpretation.
 }
 
-\strong{Scoring metrics (\code{method}):}
+\strong{Scoring metrics (method):}
 \itemize{
-\item \code{"pearson"}: squared Pearson correlation (R²), \link{0,1}.
-\item \code{"cosine"}: cosine similarity.
-\item \code{"spearman"}: squared Spearman rank correlation (negatives set to 0).
+\item "pearson": squared Pearson correlation (R²), 0 to 1.
+\item "cosine": cosine similarity.
+\item "spearman": squared Spearman rank correlation (negatives set to 0).
 }
 
-\strong{Tile mode:} if \code{use_tiles=TRUE} and pixel coordinates are present (\verb{pm$pos$x,y}),
-the sample is split into approximately \verb{sqrt(tiles)×sqrt(tiles)} subregions.
+\strong{Tile mode:} if use_tiles=TRUE and pixel coordinates are present (pkm$pos$x,y),
+the sample is split into approximately sqrt(tiles)×sqrt(tiles) subregions.
 For each tile, the same correlation is computed, summarizing via:
 \itemize{
-\item \code{"median"}: median of tile scores,
-\item \code{"p25"}: 25th percentile (robust lower-bound),
-\item \code{"pass_rate"}: fraction of tiles with score ≥ \code{tile_threshold}.
+\item "median": median of tile scores,
+\item "p25": 25th percentile (robust lower-bound),
+\item "pass_rate": fraction of tiles with score ≥ tile_threshold.
 }
 
 A consistency factor is computed as:
 \deqn{ tile\_consistency = \max(0, 1 - sd(tile\_scores)) }
 
-and blended with the global score:
-\deqn{ score\_final = \alpha \cdot score\_global + (1-\alpha) \cdot tile\_consistency }
-Alpha will be set by the user giving weights to global and tile analysis.
+The final score blends the global morphology score with the tile-consistency
+factor:
+
+\deqn{score\_final = \alpha \cdot score\_global + (1-\alpha) \cdot tile\_consistency}
+
+The \code{tile_alpha} parameter controls the contribution of the global score
+relative to the tile-consistency component. The selected \code{tile_blend} summary
+is returned as \code{tile_summary} for inspection.
 
 \strong{Output policy:}
 Returns \emph{all} isotopic candidate pairs (M+0... M+k) that fall within the mass
-tolerance and have \verb{score_final ≥ min_score_keep}.
+tolerance and have score_final ≥ min_score_keep.
 A dataframe with as many rows as isotopes are found.
 }
 \examples{
 \dontrun{
 res <- iso_morphology_candidates(
-  pm,
+  pkm,
   prefer_mode   = "ppm",
   tol_ppm       = 5,
   method        = "pearson",

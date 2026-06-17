@@ -1,3 +1,25 @@
+PeakGuideR licensing notice
+
+The PeakGuideR source code is licensed under the GNU General Public License
+version 3 (GPL-3), as reproduced below.
+
+The optional datasets included in inst/extdata are not necessarily licensed
+under GPL-3. They contain records derived from third-party databases and are
+subject to their original licensing terms.
+
+In particular, HMDB-derived records are subject to the original HMDB licensing
+terms, including CC BY-NC 4.0 non-commercial use restrictions, unless explicit
+permission is obtained from HMDB. ChEBI and NORMAN/SusDat-derived records are
+made available under CC BY 4.0 terms.
+
+See inst/NOTICE for details about included data.
+
+
+ -------------------------------------------------------------------------------
+
+
+
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
