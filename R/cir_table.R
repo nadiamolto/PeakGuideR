@@ -1,6 +1,6 @@
 #' CIR theoretical lookup table (100-1200 Da)
 #'
-#' Precomputed M/M+1 ratios for monoisotopic masses from reference formulas.
+#' Precomputed M+1/M0 ratios for monoisotopic masses from reference formulas.
 #'
 #' @format ## cir_table
 #' A data frame with 1,101 rows and 2 columns:

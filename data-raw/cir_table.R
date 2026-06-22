@@ -1,6 +1,6 @@
 
 #This code is intended to build the CIR table:
-#The main idea is to establish a theoretical M+0/M+1 ratio model for molecules with carbons (only C isotopes detected in the previous step will be evaluated with this method)
+#The main idea is to establish a theoretical M+1/M0 ratio model for molecules with carbons (only C isotopes detected in the previous step will be evaluated with this method)
 
 #CIR model bases:
 # According to a binomial distribution:
@@ -8,7 +8,7 @@
 # - The probability that each  molecule has only one 13C (being the others 12C) is
 # nC * P13C(1-P13C)^nC-1 --> nC*P13C when P13C is low (ref: Habler,K., Rexhaj, A., Adling-Ehrhardt, M., & Vogeser,M. (2024). Understanding isotopes, isomers, and isomars in mass spectrometry. Journal of Mass Spectrometry and Advances in the Clinical Lab, 33, 49-54.)
 #This term is considered to be the theoretical I(M+1)/I(M+0) as is (according to the binomial distribution theory) aprox. P(1 13C)/P(0 13C)
-#that is the same as nC * P13C(1-P13C)^nC-1 --> nC*P13C so I(M+0)/I(M+1) --> nC*P13C
+#that is the same as nC * P13C(1-P13C)^nC-1 --> nC*P13C so I(M+1)/I(M0) --> nC*P13C
 # Cause: P(1)/P(0) = (nC*P13C)/ (1-P13C) --> nC*P13C
 
 library(dplyr)
