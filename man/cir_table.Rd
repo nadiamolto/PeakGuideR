@@ -21,7 +21,7 @@ ChEBI/HMDB reference databases
 cir_table
 }
 \description{
-Precomputed M/M+1 ratios for monoisotopic masses from reference formulas.
+Precomputed M+1/M0 ratios for monoisotopic masses from reference formulas.
 }
 \details{
 Generated via GAM (k=20, gamma=1.2) fitted over carbon counts from
