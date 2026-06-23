@@ -30,10 +30,7 @@ object.
 res <- run_peakguider_workflow(
   pkm = pkm,
   ion_mode = "pos",
-  matrix = "HCCA",
-  eips_n_table = eips_n_table,
-  eips_table = eips_table
-)
+  matrix = "HCCA")
 ```
 
 ### From a Cardinal MSI object
