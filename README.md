@@ -39,10 +39,7 @@ res <- run_peakguider_workflow(
 pg_res <- run_peakguider_workflow(
   cardinal_object = msi_peaks,
   ion_mode = "pos",
-  matrix = "HCCA",
-  eips_n_table = eips_n_table,
-  eips_table = eips_table
-)
+  matrix = "HCCA")
 ```
 
 Internally, Cardinal objects are converted to the PeakGuideR peak-matrix format
