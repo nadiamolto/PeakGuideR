@@ -3,7 +3,15 @@ title: "access_to_databases"
 author: "Nadia Molt"
 date: "2026-06-17"
 output: html_document
+vignette: >
+
+  %\VignetteIndexEntry{Access to databases}
+
+  %\VignetteEngine{knitr::rmarkdown}
+
+  %\VignetteEncoding{UTF-8}
 ---
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
