@@ -52,6 +52,7 @@ For the peak-matrix route, the object should contain at least:
 
 For example:
 
+Load the example peak matrix:
 
 ```{r load-example-pkm}
 library(PeakGuideR)
@@ -59,19 +60,11 @@ library(PeakGuideR)
 data("example_pkm", package = "PeakGuideR")
 
 pkm <- example_pkm
-```
 
-```{r input-structure}
 str(pkm)
 ```
 
 # Running the workflow
-
-Loadt the example peak matrix:
-
-```{r load-example-data}
-data(example_pkm, package="PeakGuideR")
-```
 
 
 For a standard analysis, the workflow can be run with only the peak matrix, the
