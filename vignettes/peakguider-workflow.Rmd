@@ -52,6 +52,15 @@ For the peak-matrix route, the object should contain at least:
 
 For example:
 
+
+```{r load-example-pkm}
+library(PeakGuideR)
+
+data("example_pkm", package = "PeakGuideR")
+
+pkm <- example_pkm
+```
+
 ```{r input-structure}
 str(pkm)
 ```
