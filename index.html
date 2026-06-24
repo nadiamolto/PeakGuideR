@@ -485,6 +485,78 @@ Standard-adduct support should be interpreted as matrix- and preparation-specifi
 <hr>
 </div>
 <div class="section level2">
+<h2 id="output-overview">Output overview<a class="anchor" aria-label="anchor" href="#output-overview"></a>
+</h2>
+<p><code><a href="reference/run_peakguider_workflow.html">run_peakguider_workflow()</a></code> returns a <code>peakguider_workflow</code> object containing intermediate evidence tables and final summary tables.</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr>
+<th>Output</th>
+<th>Description</th>
+<th>Main use</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>morph_results</code></td>
+<td>Candidate isotope relationships supported by spatial morphology.</td>
+<td>Inspect isotope-like peak pairs.</td>
+</tr>
+<tr>
+<td><code>cir_results</code></td>
+<td>Carbon isotope-ratio evidence for candidate C13 relationships.</td>
+<td>Evaluate whether M+1/M0 ratios are chemically plausible.</td>
+</tr>
+<tr>
+<td><code>eips_results</code></td>
+<td>Elemental isotope-pattern support for non-carbon elements.</td>
+<td>Inspect putative N, O, S, Cl or Br isotope evidence.</td>
+</tr>
+<tr>
+<td><code>adduct_edges</code></td>
+<td>Pairwise adduct-compatible feature relationships.</td>
+<td>Inspect direct adduct relationships between peaks.</td>
+</tr>
+<tr>
+<td><code>adduct_families</code></td>
+<td>Groups of adduct-connected features compatible with a shared neutral mass.</td>
+<td>Explore putative molecular/adduct families.</td>
+</tr>
+<tr>
+<td><code>relation_table</code></td>
+<td>Unified feature-feature relationship table.</td>
+<td>Trace why features are connected or flagged.</td>
+</tr>
+<tr>
+<td><code>feature_summary</code></td>
+<td>One row per detected m/z feature.</td>
+<td>Start here for feature-level interpretation.</td>
+</tr>
+<tr>
+<td><code>neutral_mass_candidates</code></td>
+<td>Inferred neutral masses matched to candidate compounds.</td>
+<td>Prioritise putative annotations for validation.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="interactive-peak-network">Interactive peak network<a class="anchor" aria-label="anchor" href="#interactive-peak-network"></a>
+</h2>
+<p>PeakGuideR can visualise feature relationships as an interactive network:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span></code></pre></div>
+<p>Nodes represent detected m/z features and edges represent evidence-supported relationships, including isotope, elemental isotope-pattern and adduct-family evidence. When adduct-family information is available, the network can be restricted to a specific family:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span><span class="va">res</span>, family_id <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p>The network is exploratory: connected features represent evidence-supported relationships, not definitive compound identifications.</p>
+<hr>
+</div>
+<div class="section level2">
 <h2 id="important-interpretation-note">Important interpretation note<a class="anchor" aria-label="anchor" href="#important-interpretation-note"></a>
 </h2>
 <p>PeakGuideR outputs are evidence layers for annotation support.</p>

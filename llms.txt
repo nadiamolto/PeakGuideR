@@ -324,6 +324,52 @@ low-temperature thermal evaporation.
 
 ------------------------------------------------------------------------
 
+## Output overview
+
+[`run_peakguider_workflow()`](https://nadiamolto.github.io/PeakGuideR/reference/run_peakguider_workflow.md)
+returns a `peakguider_workflow` object containing intermediate evidence
+tables and final summary tables.
+
+| Output | Description | Main use |
+|----|----|----|
+| `morph_results` | Candidate isotope relationships supported by spatial morphology. | Inspect isotope-like peak pairs. |
+| `cir_results` | Carbon isotope-ratio evidence for candidate C13 relationships. | Evaluate whether M+1/M0 ratios are chemically plausible. |
+| `eips_results` | Elemental isotope-pattern support for non-carbon elements. | Inspect putative N, O, S, Cl or Br isotope evidence. |
+| `adduct_edges` | Pairwise adduct-compatible feature relationships. | Inspect direct adduct relationships between peaks. |
+| `adduct_families` | Groups of adduct-connected features compatible with a shared neutral mass. | Explore putative molecular/adduct families. |
+| `relation_table` | Unified feature-feature relationship table. | Trace why features are connected or flagged. |
+| `feature_summary` | One row per detected m/z feature. | Start here for feature-level interpretation. |
+| `neutral_mass_candidates` | Inferred neutral masses matched to candidate compounds. | Prioritise putative annotations for validation. |
+
+------------------------------------------------------------------------
+
+## Interactive peak network
+
+PeakGuideR can visualise feature relationships as an interactive
+network:
+
+``` r
+
+plot_peak_network(res)
+```
+
+Nodes represent detected m/z features and edges represent
+evidence-supported relationships, including isotope, elemental
+isotope-pattern and adduct-family evidence. When adduct-family
+information is available, the network can be restricted to a specific
+family:
+
+``` r
+
+plot_peak_network(res, family_id = 1)
+```
+
+The network is exploratory: connected features represent
+evidence-supported relationships, not definitive compound
+identifications.
+
+------------------------------------------------------------------------
+
 ## Important interpretation note
 
 PeakGuideR outputs are evidence layers for annotation support.
