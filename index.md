@@ -11,10 +11,9 @@ morphology, carbon isotope-ratio support, elemental isotope-pattern
 support, adduct-family grouping, neutral-mass inference and database
 matching.
 
-> **Important**  
-> PeakGuideR does **not** provide definitive compound identification.
-> Its outputs should be interpreted as putative annotation evidence that
-> can guide downstream validation.
+PeakGuideR does **not** provide definitive compound identification. Its
+outputs should be interpreted as putative annotation evidence that can
+guide downstream validation.
 
 ## Overview
 
