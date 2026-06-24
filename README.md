@@ -1,7 +1,7 @@
 # PeakGuideR
 
-PeakGuideR is an R package for evidence-based annotation support in mass
-spectrometry imaging and metabolomics peak tables.
+PeakGuideR is an R package for evidence-based annotation support in spatial 
+metabolomics peak data.
 
 The package combines complementary evidence layers, including isotope morphology,
 carbon isotope-ratio support, elemental isotope-pattern support, adduct-family
@@ -42,7 +42,7 @@ pg_res <- run_peakguider_workflow(
   matrix = "HCCA")
 ```
 
-Internally, Cardinal objects are converted to the PeakGuideR peak-matrix format
+Internally, Cardinal objects are converted to peak-matrix format
 using `cardinal_to_peakmatrix()`.
 
 The workflow returns a `peakguider_workflow` object:
