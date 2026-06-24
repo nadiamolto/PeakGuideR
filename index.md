@@ -4,16 +4,20 @@
 annotation](reference/figures/PeakGuideR_logo.png)
 
 **PeakGuideR** is an R package for evidence-based annotation support in
-spatial metabolomics peak data.
+MALDI-MSI metabolomics data.
 
-The package combines complementary evidence layers, including isotope
-morphology, carbon isotope-ratio support, elemental isotope-pattern
-support, adduct-family grouping, neutral-mass inference and database
-matching.
+PeakGuideR transforms spatial metabolomics peak data into
+evidence-supported annotation maps. By combining isotope morphology,
+carbon isotope-ratio support (CIR), elemental isotope-pattern support
+(EIPS), adduct-edge detection, network-based adduct-family grouping,
+neutral-mass inference and database matching, the package helps reveal
+which peaks are connected, which features may belong to the same
+molecular family and which candidates are best supported by the
+available evidence.
 
 PeakGuideR does **not** provide definitive compound identification. Its
-outputs should be interpreted as putative annotation evidence that can
-guide downstream validation.
+goal is to make putative annotation evidence more transparent,
+interpretable and easier to prioritize before downstream validation.
 
   
 
@@ -75,8 +79,24 @@ res <- run_peakguider_workflow(
 ### From a Cardinal MSI object
 
 ``` r
+res <-# PeakGuideR
 
-res <- run_peakguider_workflow(
+<!-- badges: start -->
+<!-- badges: end -->
+
+<img src="man/figures/PeakGuideR_logo.png"
+     align="right"
+     width="360"
+     alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"/>
+
+---
+
+**PeakGuideR** is an R package for evidence-based annotation support in MALDI-MSI metabolomics data.
+
+PeakGuideR transforms spatial metabolomics peak data into evidence-supported annotation maps. By combining isotope morphology, carbon isotope-ratio support (CIR), elemental isotope-pattern support (EIPS), adduct-edge detection, network-based adduct-family grouping, neutral-mass inference and database matching, the package helps reveal which peaks are connected, which features may belong to the same molecular family and which candidates are best supported by the available evidence.
+
+PeakGuideR does **not** provide definitive compound identification. Its goal is to make putative annotation evidence more transparent, interpretable and easier to prioritize before downstream validation.
+ run_peakguider_workflow(
   pkm = MSImagingExperimentObject,
   ion_mode = "pos",
   matrix = "HCCA"
@@ -322,18 +342,18 @@ required for confident identification.
 
 PeakGuideR includes small example compound and standard-adduct databases
 for testing and demonstration. Full annotation databases are distributed
-separately for non-commercial research use.
-
-These datasets include records derived from ChEBI, NORMAN and HMDB.
-ChEBI and NORMAN records are distributed under CC BY 4.0 terms.
-HMDB-derived records are subject to CC BY-NC 4.0 non-commercial use
-restrictions according to the original HMDB licensing terms.
-
-The databases are used only to retrieve putative mass-matched candidates
-and do not constitute compound identification. Users are responsible for
+separately for non-commercial research use. These datasets include
+records derived from ChEBI, NORMAN and HMDB. ChEBI and NORMAN records
+are distributed under CC BY 4.0 terms. HMDB-derived records are subject
+to CC BY-NC 4.0 non-commercial use restrictions according to the
+original HMDB licensing terms. Some records may include external
+database cross-references, such as InChIKey, PubChem CID, ChEBI, KEGG or
+HMDB identifiers, when these were available in the source metadata.
+These identifiers are provided only as compound cross-references. The
+databases are used only to retrieve putative mass-matched candidates and
+do not constitute compound identification. Users are responsible for
 ensuring that their use complies with the original providers’ licenses.
-
-------------------------------------------------------------------------
+—
 
 ## Citation
 

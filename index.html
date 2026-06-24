@@ -58,10 +58,10 @@
 </h1></div>
 <!-- badges: start -->
 <!-- badges: end -->
-<p><img src="reference/figures/PeakGuideR_logo.png" align="right" width="320" alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"></p>
-<p><strong>PeakGuideR</strong> is an R package for evidence-based annotation support in spatial metabolomics peak data.</p>
-<p>The package combines complementary evidence layers, including isotope morphology, carbon isotope-ratio support, elemental isotope-pattern support, adduct-family grouping, neutral-mass inference and database matching.</p>
-<p>PeakGuideR does <strong>not</strong> provide definitive compound identification. Its outputs should be interpreted as putative annotation evidence that can guide downstream validation.</p>
+<p><img src="reference/figures/PeakGuideR_logo.png" align="right" width="360" alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"></p>
+<p><strong>PeakGuideR</strong> is an R package for evidence-based annotation support in MALDI-MSI metabolomics data.</p>
+<p>PeakGuideR transforms spatial metabolomics peak data into evidence-supported annotation maps. By combining isotope morphology, carbon isotope-ratio support (CIR), elemental isotope-pattern support (EIPS), adduct-edge detection, network-based adduct-family grouping, neutral-mass inference and database matching, the package helps reveal which peaks are connected, which features may belong to the same molecular family and which candidates are best supported by the available evidence.</p>
+<p>PeakGuideR does <strong>not</strong> provide definitive compound identification. Its goal is to make putative annotation evidence more transparent, interpretable and easier to prioritize before downstream validation.</p>
 <p><br clear="right"></p>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
@@ -137,12 +137,28 @@
 <div class="section level3">
 <h3 id="from-a-cardinal-msi-object">From a Cardinal MSI object<a class="anchor" aria-label="anchor" href="#from-a-cardinal-msi-object"></a>
 </h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_peakguider_workflow.html">run_peakguider_workflow</a></span><span class="op">(</span></span>
-<span>  pkm <span class="op">=</span> <span class="va">MSImagingExperimentObject</span>,</span>
-<span>  ion_mode <span class="op">=</span> <span class="st">"pos"</span>,</span>
-<span>  matrix <span class="op">=</span> <span class="st">"HCCA"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>res <span class="ot">&lt;-</span><span class="co"># PeakGuideR</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="er">&lt;</span><span class="sc">!--</span> badges<span class="sc">:</span> start <span class="sc">-</span><span class="ot">-&gt;</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="er">&lt;</span><span class="sc">!--</span> badges<span class="sc">:</span> end <span class="sc">-</span><span class="ot">-&gt;</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="er">&lt;</span>img src<span class="ot">=</span><span class="st">"man/figures/PeakGuideR_logo.png"</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>     align<span class="ot">=</span><span class="st">"right"</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>     width<span class="ot">=</span><span class="st">"360"</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>     alt<span class="ot">=</span><span class="st">"PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"</span><span class="sc">/</span><span class="er">&gt;</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="sc">---</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="er">**</span>PeakGuideR<span class="sc">**</span> is an R package <span class="cf">for</span> evidence<span class="sc">-</span>based annotation support <span class="cf">in</span> MALDI<span class="sc">-</span>MSI metabolomics data.</span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>PeakGuideR transforms spatial metabolomics peak data into evidence<span class="sc">-</span>supported annotation maps. By combining isotope morphology, carbon isotope<span class="sc">-</span>ratio <span class="fu">support</span> (CIR), elemental isotope<span class="sc">-</span>pattern <span class="fu">support</span> (EIPS), adduct<span class="sc">-</span>edge detection, network<span class="sc">-</span>based adduct<span class="sc">-</span>family grouping, neutral<span class="sc">-</span>mass inference and database matching, the package helps reveal which peaks are connected, which features may belong to the same molecular family and which candidates are best supported by the available evidence.</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>PeakGuideR does <span class="sc">**</span>not<span class="sc">**</span> provide definitive compound identification. Its goal is to make putative annotation evidence more transparent, interpretable and easier to prioritize before downstream validation.</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a> <span class="fu">run_peakguider_workflow</span>(</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>  <span class="at">pkm =</span> MSImagingExperimentObject,</span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>  <span class="at">ion_mode =</span> <span class="st">"pos"</span>,</span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>  <span class="at">matrix =</span> <span class="st">"HCCA"</span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>)</span></code></pre></div>
 <p>Internally, Cardinal objects are converted to peak-matrix format using <code><a href="reference/cardinal_to_peakmatrix.html">cardinal_to_peakmatrix()</a></code>.</p>
 <p>The workflow returns a <code>peakguider_workflow</code> object:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -479,10 +495,7 @@ Standard-adduct support should be interpreted as matrix- and preparation-specifi
 <div class="section level2">
 <h2 id="data-licensing-notice">Data licensing notice<a class="anchor" aria-label="anchor" href="#data-licensing-notice"></a>
 </h2>
-<p>PeakGuideR includes small example compound and standard-adduct databases for testing and demonstration. Full annotation databases are distributed separately for non-commercial research use.</p>
-<p>These datasets include records derived from ChEBI, NORMAN and HMDB. ChEBI and NORMAN records are distributed under CC BY 4.0 terms. HMDB-derived records are subject to CC BY-NC 4.0 non-commercial use restrictions according to the original HMDB licensing terms.</p>
-<p>The databases are used only to retrieve putative mass-matched candidates and do not constitute compound identification. Users are responsible for ensuring that their use complies with the original providers’ licenses.</p>
-<hr>
+<p>PeakGuideR includes small example compound and standard-adduct databases for testing and demonstration. Full annotation databases are distributed separately for non-commercial research use. These datasets include records derived from ChEBI, NORMAN and HMDB. ChEBI and NORMAN records are distributed under CC BY 4.0 terms. HMDB-derived records are subject to CC BY-NC 4.0 non-commercial use restrictions according to the original HMDB licensing terms. Some records may include external database cross-references, such as InChIKey, PubChem CID, ChEBI, KEGG or HMDB identifiers, when these were available in the source metadata. These identifiers are provided only as compound cross-references. The databases are used only to retrieve putative mass-matched candidates and do not constitute compound identification. Users are responsible for ensuring that their use complies with the original providers’ licenses. —</p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
