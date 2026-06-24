@@ -14,6 +14,7 @@ The package combines complementary evidence layers, including isotope morphology
 
 PeakGuideR does **not** provide definitive compound identification. Its outputs should be interpreted as putative annotation evidence that can guide downstream validation.
 
+<br clear="right"/>
 
 ## Overview
 
@@ -288,7 +289,7 @@ Experimental validation, MS/MS, standards or orthogonal evidence may be required
 
 PeakGuideR includes small example compound and standard-adduct databases for testing and demonstration. Full annotation databases are distributed separately for non-commercial research use.
 
-These datasets include records derived from ChEBI, NORMAN and HMDB. ChEBI and NORMAN/SusDat records are distributed under CC BY 4.0 terms. HMDB-derived records are subject to CC BY-NC 4.0 non-commercial use restrictions according to the original HMDB licensing terms.
+These datasets include records derived from ChEBI, NORMAN and HMDB. ChEBI and NORMAN records are distributed under CC BY 4.0 terms. HMDB-derived records are subject to CC BY-NC 4.0 non-commercial use restrictions according to the original HMDB licensing terms.
 
 The databases are used only to retrieve putative mass-matched candidates and do not constitute compound identification. Users are responsible for ensuring that their use complies with the original providers' licenses.
 
