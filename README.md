@@ -1,5 +1,4 @@
-<img src="man/figures/PeakGuideR_logo.png" align="right" width="320"/>
-
+<img src="man/figures/PeakGuideR_logo.png" alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation" align="right" width="280" style="margin-top: 25px;"/>
 # PeakGuideR
 
 <!-- badges: start -->
