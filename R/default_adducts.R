@@ -1,6 +1,24 @@
-default_adducts <- function() {
+#' Default adduct definitions
+#'
+#' @description
+#' Returns the default adduct definitions used by PeakGuideR for the selected
+#' ion mode.
+#'
+#' @param ion_mode Ion mode. Either `"pos"` or `"neg"`. If `NULL`, adducts for
+#'   both ion modes are returned.
+#'
+#' @return A data.frame containing adduct definitions, including adduct names,
+#' ion mode and mass shifts relative to the neutral molecule.
+#'
+#' @examples
+#' default_adducts("pos")
+#' default_adducts("neg")
+#' default_adducts(NULL)
+#'
+#' @export
+default_adducts <- function(ion_mode = c("pos", "neg")) {
 
-  data.frame(
+  adducts <- data.frame(
     name = c(
       # POSITIVE MODE
       "[M+H]+",
@@ -22,30 +40,37 @@ default_adducts <- function() {
       rep("neg", 3)
     ),
 
-    # NET m/z shift (Da) — HARD-CODED
+    # NET m/z shift (Da)
     mass = c(
       # pos
-      +1.007276,    # [M+H]+
+      +1.007276,   # [M+H]+
       +22.989218,  # [M+Na]+
       +18.033823,  # [M+NH4]+
       +38.963158,  # [M+K]+
-      -17.003289,  # [M+H-H2O]+  (1.007276 - 18.010565)
-      +44.971160,  # [M+2Na-H]+  (2*22.989218 - 1.007276)
-      +76.919040,  # [M+2K-H]+   (2*38.963158 - 1.007276)
+      -17.003289,  # [M+H-H2O]+
+      +44.971160,  # [M+2Na-H]+
+      +76.919040,  # [M+2K-H]+
 
       # neg
       -1.007276,   # [M-H]-
       +34.968853,  # [M+Cl]-
-      -19.017841   # [M-H-H2O]-  (1.007276 + 18.010565)
+      -19.017841   # [M-H-H2O]-
     ),
 
-    # ALWAYS +1 (do not touch)
+    # ALWAYS +1
     sign = rep(+1, 10),
 
     stringsAsFactors = FALSE
   )
-}
 
+  if (is.null(ion_mode)) {
+    return(adducts)
+  }
+
+  ion_mode <- match.arg(ion_mode)
+
+  adducts[adducts$mode == ion_mode, , drop = FALSE]
+}
 
 #To add a new adduct
 #rbind(

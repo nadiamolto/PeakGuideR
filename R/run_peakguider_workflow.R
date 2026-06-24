@@ -9,9 +9,9 @@
 #' adduct-family grouping, relation-table construction, feature-level
 #' summarization and neutral-mass candidate matching.
 #'
-#' @param pkm Optional PeakGuideR peak matrix object.
-#' @param cardinal_object Optional Cardinal MSI object. If supplied, it is first
-#'   converted using `cardinal_to_peakmatrix()`.
+#' @param pkm rMSI2 peak matrix object, or a supported Cardinal
+#'   `MSImagingExperiment` object. Cardinal objects are converted internally
+#'   using `cardinal_to_peakmatrix()`.
 #' @param ion_mode Ion mode, either `"pos"` or `"neg"`.
 #' @param matrix Matrix name. Use `"HCCA"` to enable HCCA-specific standard
 #'   adduct support in neutral-mass candidate matching.
@@ -22,8 +22,9 @@
 #' @param morph_transform Intensity transformation used by
 #'   `iso_morphology_candidates()`.
 #' @param morph_tile_blend Method used to combine tile-level morphology scores.
-#' @param adducts Optional adduct table. If `NULL`, defaults from lower-level
-#'   functions are used.
+#' @param adducts Optional adduct definition table. If `NULL`, PeakGuideR uses
+#'   `default_adducts(ion_mode)`. Users can inspect and modify the default
+#'   adduct table with `default_adducts()`.
 #' @param compound_db Optional compound mass database.
 #' @param standards_db Optional standard adduct library.
 #' @param iso_min_score Minimum isotope morphology score used for CIR/EIPS input.
@@ -45,11 +46,11 @@
 #'
 #' @return A list with all main PeakGuideR workflow outputs.
 #' @export
+#'
 run_peakguider_workflow <- function(
-    pkm = NULL,
-    cardinal_object = NULL,
+    pkm,
     ion_mode = c("pos", "neg"),
-    matrix = NULL, # Standard-adduct support is currently matrix-specific. At present, the included standard library is available for HCCA.
+    matrix = NULL, # Standard-adduct support is currently matrix-specific. At present, the included standard library is available only for HCCA+DEA matrix.
     adducts = NULL,
     compound_db = NULL,
     standards_db = NULL,
@@ -83,35 +84,40 @@ run_peakguider_workflow <- function(
   adduct_method <- match.arg(adduct_method)
   adduct_transform <- match.arg(adduct_transform)
 
-  if (is.null(pkm) && is.null(cardinal_object)) {
-    stop(
-      "Please provide either `pkm` or `cardinal_object`.",
-      call. = FALSE
-    )
-  }
-
-  if (!is.null(pkm) && !is.null(cardinal_object)) {
-    stop(
-      "Please provide only one input: either `pkm` or `cardinal_object`, not both.",
-      call. = FALSE
-    )
-  }
 
   input_type <- "peak_matrix"
 
-  if (is.null(pkm)) {
+  if (is.null(adducts)) {
+    adducts <- default_adducts(ion_mode)
+
+    if (!isTRUE(quiet)) {
+      message(
+        "No adduct table supplied; using PeakGuideR default adduct definitions for ",
+        ion_mode,
+        " mode."
+      )
+    }}
+
+  if (missing(pkm)) {
+    stop(
+      "Argument 'pkm' is required. Please provide a peak matrix or a supported Cardinal object.",
+      call. = FALSE
+    )
+  }
+
+  if (is_cardinal_object(pkm)) {
     input_type <- "cardinal_object"
 
     if (!isTRUE(quiet)) {
       message("Converting Cardinal object to PeakGuideR peak matrix...")
     }
 
-    pkm <- cardinal_to_peakmatrix(cardinal_object)
+    pkm <- cardinal_to_peakmatrix(pkm)
   }
 
   if (!is.list(pkm) || is.null(pkm$mass)) {
     stop(
-      "`pkm` must be a PeakGuideR peak matrix object containing at least `mass`.",
+      "`pkm` must be a peak matrix object containing at least `mass`, `intensity` and `pos`, or a supported Cardinal object.",
       call. = FALSE
     )
   }

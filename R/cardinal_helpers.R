@@ -1,4 +1,36 @@
+#' Check whether an object is a supported Cardinal object
+#'
+#' @description
+#' Internal helper used to detect Cardinal MSI objects before conversion to a
+#' PeakGuideR peak matrix.
+#'
+#' @param x An R object.
+#'
+#' @return Logical value.
+#'
+#' @keywords internal
+is_cardinal_object <- function(x) {
+  supported_classes <- c(
+    "MSImagingExperiment",
+    "MSContinuousImagingExperiment",
+    "MSProcessedImagingExperiment"
+  )
+
+  any(vapply(
+    supported_classes,
+    function(cls) {
+      inherits(x, cls) || methods::is(x, cls)
+    },
+    logical(1)
+  ))
+}
+
+
 #' Convert a Cardinal MSImagingExperiment object to a peak matrix
+#'
+#' @description
+#' Converts a supported Cardinal MSI object into a PeakGuideR peak matrix with
+#' an rMSIprocPeakMatrix-like structure.
 #'
 #' @param x A Cardinal MSImagingExperiment object.
 #' @param value Name of the imageData layer to extract. If NULL, "intensity" is used.
@@ -7,6 +39,7 @@
 #' @param area Optional area matrix.
 #'
 #' @return An object with rMSIprocPeakMatrix-like structure.
+#'
 #' @export
 cardinal_to_peakmatrix <- function(
     x,
@@ -23,8 +56,11 @@ cardinal_to_peakmatrix <- function(
     )
   }
 
-  if (!inherits(x, "MSImagingExperiment")) {
-    stop("`x` must be a MSImagingExperiment object from Cardinal >= 3.x.", call. = FALSE)
+  if (!is_cardinal_object(x)) {
+    stop(
+      "`x` must be a supported Cardinal MSImagingExperiment object.",
+      call. = FALSE
+    )
   }
 
   img <- Cardinal::imageData(x)
@@ -39,7 +75,7 @@ cardinal_to_peakmatrix <- function(
 
   if (!value %in% avail) {
     stop(sprintf(
-      "Layer '%s' not found in imageData(x). Available: %s",
+      "Layer '%s' not found in imageData(x). Available layers: %s",
       value,
       paste(avail, collapse = ", ")
     ), call. = FALSE)
@@ -57,7 +93,7 @@ cardinal_to_peakmatrix <- function(
   } else {
     M <- try(as.matrix(intens_layer), silent = TRUE)
     if (inherits(M, "try-error")) {
-      stop("Could not coerce selected layer to matrix.", call. = FALSE)
+      stop("Could not coerce selected imageData layer to matrix.", call. = FALSE)
     }
   }
 
@@ -75,13 +111,18 @@ cardinal_to_peakmatrix <- function(
   })
 
   if (length(mass) != ncol(intensity)) {
-    warning("Length of 'mass' does not match ncol(intensity). Creating a simple sequence.")
+    warning(
+      "Length of 'mass' does not match ncol(intensity). ",
+      "Creating a simple sequence instead."
+    )
     mass <- seq_len(ncol(intensity))
   }
 
   binSize <- rep(NA_real_, length(mass))
+
   if (length(mass) >= 2) {
     dm <- diff(mass)
+
     if (length(mass) == 2) {
       binSize[] <- dm[1] / 2
     } else {
@@ -106,16 +147,22 @@ cardinal_to_peakmatrix <- function(
     x = as.numeric(pd$x),
     y = as.numeric(pd$y)
   )
+
   rownames(pos) <- NULL
   posMotors <- pos
 
   TIC <- rowSums(intensity, na.rm = TRUE)
   RMS <- sqrt(rowMeans(intensity^2, na.rm = TRUE))
+
   MAX <- apply(
     intensity,
     1L,
     function(v) {
-      if (all(is.na(v))) NA_real_ else max(v, na.rm = TRUE)
+      if (all(is.na(v))) {
+        NA_real_
+      } else {
+        max(v, na.rm = TRUE)
+      }
     }
   )
 
@@ -139,6 +186,7 @@ cardinal_to_peakmatrix <- function(
 
   if (is.null(dataset_name)) {
     rn <- tryCatch(Cardinal::runNames(x), error = function(e) NULL)
+
     dataset_name <- if (!is.null(rn) && length(rn) >= 1 && nzchar(rn[1])) {
       rn[1]
     } else {
@@ -166,4 +214,3 @@ cardinal_to_peakmatrix <- function(
 
   pkm_rms
 }
-

@@ -5,8 +5,7 @@
 \title{Run the PeakGuideR annotation workflow}
 \usage{
 run_peakguider_workflow(
-  pkm = NULL,
-  cardinal_object = NULL,
+  pkm,
   ion_mode = c("pos", "neg"),
   matrix = NULL,
   adducts = NULL,
@@ -34,18 +33,18 @@ run_peakguider_workflow(
 )
 }
 \arguments{
-\item{pkm}{Optional PeakGuideR peak matrix object.}
-
-\item{cardinal_object}{Optional Cardinal MSI object. If supplied, it is first
-converted using \code{cardinal_to_peakmatrix()}.}
+\item{pkm}{rMSI2 peak matrix object, or a supported Cardinal
+\code{MSImagingExperiment} object. Cardinal objects are converted internally
+using \code{cardinal_to_peakmatrix()}.}
 
 \item{ion_mode}{Ion mode, either \code{"pos"} or \code{"neg"}.}
 
 \item{matrix}{Matrix name. Use \code{"HCCA"} to enable HCCA-specific standard
 adduct support in neutral-mass candidate matching.}
 
-\item{adducts}{Optional adduct table. If \code{NULL}, defaults from lower-level
-functions are used.}
+\item{adducts}{Optional adduct definition table. If \code{NULL}, PeakGuideR uses
+\code{default_adducts(ion_mode)}. Users can inspect and modify the default
+adduct table with \code{default_adducts()}.}
 
 \item{compound_db}{Optional compound mass database.}
 

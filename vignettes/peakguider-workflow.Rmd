@@ -89,13 +89,13 @@ If the data are stored as a Cardinal MSI object, the same workflow can be called
 
 ```{r run-cardinal}
 res <- run_peakguider_workflow(
-  cardinal_object = msi_peaks,
+  pkm = msi_peaks,
   ion_mode = "pos",
   matrix = "HCCA"
 )
 ```
 
-Internally, Cardinal objects are converted to the PeakGuideR peak-matrix format
+Internally, Cardinal objects are converted to peak-matrix format
 using `cardinal_to_peakmatrix()`.
 
 The returned object is a list with class `peakguider_workflow`:
@@ -394,7 +394,7 @@ or using the helper function (also replace the file paths below with the local p
 
 ```{r load-full-dbs-helper, eval=FALSE}
 dbs <- load_peakguider_databases(
-  compound_db_path = "path/to/compound_mass_database.rdss",
+  compound_db_path = "path/to/compound_mass_database.rds",
   standards_db_path = "path/to/standards_adduct_database.rds"
 )
 ```

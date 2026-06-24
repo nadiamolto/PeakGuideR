@@ -15,3 +15,4 @@ CIR theoretical ratios (same length).
 \description{
 Theoretical CIR ratio
 }
+\keyword{internal}

@@ -13,10 +13,17 @@ validation.
 
 ## Installation
 
-PeakGuideR can be installed from GitHub:
+PeakGuideR can be installed from GitHub (keep "vignettes=TRUE" to install it 
+with vignettes (recomended):
 
 ```r
-remotes::install_github("nadiamolto/PeakGuideR")
+remotes::install_github("nadiamolto/PeakGuideR", build_vignettes=TRUE, dependencies=TRUE)
+```
+
+The package vignettes can then opened with:
+
+```r 
+browseVignettes("PeakGuideR")
 ```
 
 ## Basic workflow
@@ -36,8 +43,8 @@ res <- run_peakguider_workflow(
 ### From a Cardinal MSI object
 
 ```r
-pg_res <- run_peakguider_workflow(
-  cardinal_object = msi_peaks,
+res <- run_peakguider_workflow(
+  pkm = MSImagingExperimentObject,
   ion_mode = "pos",
   matrix = "HCCA")
 ```
