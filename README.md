@@ -1,35 +1,57 @@
+<img src="man/figures/PeakGuideR_logo.png" align="right" width="180"/>
+
 # PeakGuideR
 
-PeakGuideR is an R package for evidence-based annotation support in spatial 
-metabolomics peak data.
+<!-- badges: start -->
+<!-- badges: end -->
 
-The package combines complementary evidence layers, including isotope morphology,
-carbon isotope-ratio support, elemental isotope-pattern support, adduct-family
-grouping, neutral-mass inference and database matching.
+**PeakGuideR** is an R package for evidence-based annotation support in spatial metabolomics peak data.
 
-PeakGuideR does **not** provide definitive compound identification. Its outputs
-should be interpreted as putative annotation evidence that can guide downstream
-validation.
+The package combines complementary evidence layers, including isotope morphology, carbon isotope-ratio support, elemental isotope-pattern support, adduct-family grouping, neutral-mass inference and database matching.
+
+> **Important**  
+> PeakGuideR does **not** provide definitive compound identification. Its outputs should be interpreted as putative annotation evidence that can guide downstream validation.
+
+---
+
+## Overview
+
+PeakGuideR integrates several evidence layers for spatial metabolomics peak annotation:
+
+| Evidence layer | Purpose |
+|---|---|
+| Isotope morphology | Detects isotope-related peaks using mass spacing and spatial similarity |
+| Carbon isotope-ratio support | Evaluates whether M+1/M0 ratios are compatible with carbon isotope behaviour |
+| Elemental isotope-pattern support | Evaluates elemental isotope-pattern evidence such as N, O, S, Cl and Br |
+| Adduct-family grouping | Groups related peaks into putative adduct families |
+| Neutral-mass inference | Infers consensus neutral masses from compatible adduct assignments |
+| Database matching | Reports putative mass-matched candidate compounds |
+
+---
 
 ## Installation
 
-PeakGuideR can be installed from GitHub (keep "vignettes=TRUE" to install it 
-with vignettes (recomended):
+PeakGuideR can be installed from GitHub. Keep `build_vignettes = TRUE` to install the package with vignettes:
 
 ```r
-remotes::install_github("nadiamolto/PeakGuideR", build_vignettes=TRUE, dependencies=TRUE)
+remotes::install_github(
+  "nadiamolto/PeakGuideR",
+  build_vignettes = TRUE,
+  dependencies = TRUE
+)
 ```
 
-The package vignettes can then opened with:
+The package vignettes can then be opened with:
 
-```r 
+```r
 browseVignettes("PeakGuideR")
 ```
 
+---
+
 ## Basic workflow
 
-PeakGuideR accepts either a rMSI2 peak matrix object or a Cardinal MSI
-object.
+PeakGuideR accepts either a rMSI2 peak matrix object or a Cardinal MSI object.
 
 ### From a PeakGuideR peak matrix
 
@@ -37,7 +59,8 @@ object.
 res <- run_peakguider_workflow(
   pkm = pkm,
   ion_mode = "pos",
-  matrix = "HCCA")
+  matrix = "HCCA"
+)
 ```
 
 ### From a Cardinal MSI object
@@ -46,26 +69,35 @@ res <- run_peakguider_workflow(
 res <- run_peakguider_workflow(
   pkm = MSImagingExperimentObject,
   ion_mode = "pos",
-  matrix = "HCCA")
+  matrix = "HCCA"
+)
 ```
 
-Internally, Cardinal objects are converted to peak-matrix format
-using `cardinal_to_peakmatrix()`.
+Internally, Cardinal objects are converted to peak-matrix format using `cardinal_to_peakmatrix()`.
 
 The workflow returns a `peakguider_workflow` object:
 
 ```r
-class(pg_res)
-names(pg_res)
+class(res)
+names(res)
 ```
 
-Main outputs include:
+---
 
-- `pg_res$feature_summary`: one row per m/z feature, summarizing isotope, EIPS and adduct-family evidence.
-- `pg_res$neutral_mass_candidates`: one row per inferred neutral mass and compound candidate.
-- `pg_res$relation_table`: pairwise relationships between features.
-- `pg_res$adduct_families`: inferred adduct families and neutral masses.
-- `pg_res$morph_results`, `pg_res$cir_results`, `pg_res$eips_results`, `pg_res$adduct_edges`: intermediate evidence tables regarding isotope and adduct module.
+## Main outputs
+
+| Output | Description |
+|---|---|
+| `res$feature_summary` | One row per m/z feature, summarizing isotope, EIPS and adduct-family evidence |
+| `res$neutral_mass_candidates` | One row per inferred neutral mass and compound candidate |
+| `res$relation_table` | Pairwise relationships between features |
+| `res$adduct_families` | Inferred adduct families and neutral masses |
+| `res$morph_results` | Isotope morphology results |
+| `res$cir_results` | Carbon isotope-ratio validation results |
+| `res$eips_results` | Elemental isotope-pattern support results |
+| `res$adduct_edges` | Pairwise adduct-compatible relationships |
+
+---
 
 ## Exploring the output
 
@@ -93,21 +125,24 @@ res$feature_summary |>
 
 Useful columns include:
 
-- `idx`: feature index.
-- `mz`: feature m/z value.
-- `is_c13_m0`: whether the feature is supported as a monoisotopic peak.
-- `c13_m1_idx`: feature index of the putative C13 M+1 partner.
-- `c13_score`: carbon isotope-ratio support score.
-- `has_eips`: whether elemental isotope-pattern support was detected.
-- `eips_elements`: supported isotope-pattern elements.
-- `has_adduct_family`: whether the feature belongs to an inferred adduct family.
-- `adduct_roles`: inferred adduct role or roles for the feature.
-- `neutral_mass_consensus`: inferred neutral mass associated with the main adduct family.
+| Column | Description |
+|---|---|
+| `idx` | Feature index |
+| `mz` | Feature m/z value |
+| `is_c13_m0` | Whether the feature is supported as a monoisotopic peak |
+| `c13_m1_idx` | Feature index of the putative C13 M+1 partner |
+| `c13_score` | Carbon isotope-ratio support score |
+| `has_eips` | Whether elemental isotope-pattern support was detected |
+| `eips_elements` | Supported isotope-pattern elements |
+| `has_adduct_family` | Whether the feature belongs to an inferred adduct family |
+| `adduct_roles` | Inferred adduct role or roles for the feature |
+| `neutral_mass_consensus` | Inferred neutral mass associated with the main adduct family |
+
+---
 
 ### Neutral-mass candidates
 
-`neutral_mass_candidates` summarizes inferred neutral masses and database
-candidate matches.
+`neutral_mass_candidates` summarizes inferred neutral masses and database candidate matches.
 
 ```r
 res$neutral_mass_candidates |>
@@ -129,17 +164,21 @@ res$neutral_mass_candidates |>
 
 Useful columns include:
 
-- `neutral_mass_id`: internal neutral-mass group identifier.
-- `neutral_mass_consensus`: inferred neutral mass.
-- `inferred_adducts`: adducts supporting the inferred neutral mass.
-- `candidate_source`: source database of the candidate match.
-- `candidate_db_id`: database identifier.
-- `candidate_name`: candidate compound name.
-- `candidate_formula`: candidate molecular formula.
-- `candidate_neutral_mass`: neutral monoisotopic mass from the database.
-- `candidate_ppm_error`: mass error between the inferred neutral mass and the candidate.
-- `has_standard_compound_match`: whether the candidate compound is present in the standard-adduct library.
-- `has_standard_adduct_match`: whether the inferred adduct is supported for that compound in the standard-adduct library.
+| Column | Description |
+|---|---|
+| `neutral_mass_id` | Internal neutral-mass group identifier |
+| `neutral_mass_consensus` | Inferred neutral mass |
+| `inferred_adducts` | Adducts supporting the inferred neutral mass |
+| `candidate_source` | Source database of the candidate match |
+| `candidate_db_id` | Database identifier |
+| `candidate_name` | Candidate compound name |
+| `candidate_formula` | Candidate molecular formula |
+| `candidate_neutral_mass` | Neutral monoisotopic mass from the database |
+| `candidate_ppm_error` | Mass error between the inferred neutral mass and the candidate |
+| `has_standard_compound_match` | Whether the candidate compound is present in the standard-adduct library |
+| `has_standard_adduct_match` | Whether the inferred adduct is supported for that compound in the standard-adduct library |
+
+---
 
 ### Summary of candidate matches
 
@@ -157,26 +196,31 @@ res$neutral_mass_candidates |>
   )
 ```
 
+---
+
 ## Databases
 
 PeakGuideR includes small example databases for testing and demonstration:
 
-- `compound_mass_database_example.rds`
-- `standards_adduct_library_example.rds`
+| Example database | Description |
+|---|---|
+| `compound_mass_database_example.rds` | Small compound mass database for testing and demonstration |
+| `standards_adduct_library_example.rds` | Small standard-adduct library for testing and demonstration |
 
-These example databases are automatically used when no external databases are
-provided.
+These example databases are automatically used when no external databases are provided.
 
-For real analyses, users should download the full non-commercial annotation
-databases from Zenodo:
+For real analyses, users should download the full non-commercial annotation databases from Zenodo:
 
-- `compound_mass_database_noncommercial.rds`
-- `standards_adduct_library_noncommercial.rds`
+| Full database | Description |
+|---|---|
+| `compound_mass_database_noncommercial.rds` | Full non-commercial compound mass database |
+| `standards_adduct_library_noncommercial.rds` | Full non-commercial standard-adduct library |
 
 Zenodo record: `10.5281/zenodo.20705395`
 
-These full databases are distributed separately because they include third-party
-compound metadata with non-commercial licensing restrictions.
+These full databases are distributed separately because they include third-party compound metadata with non-commercial licensing restrictions.
+
+---
 
 ### Loading full databases manually
 
@@ -194,8 +238,6 @@ res <- run_peakguider_workflow(
   pkm = pkm,
   ion_mode = "pos",
   matrix = "HCCA",
-  eips_n_table = eips_n_table,
-  eips_table = eips_table,
   compound_db = compound_db,
   standards_db = standards_db
 )
@@ -213,56 +255,46 @@ res <- run_peakguider_workflow(
   pkm = pkm,
   ion_mode = "pos",
   matrix = "HCCA",
-  eips_n_table = eips_n_table,
-  eips_table = eips_table,
   compound_db = dbs$compound_db,
   standards_db = dbs$standards_db
 )
 ```
 
-### Standard-adduct support
+---
 
-Standard-adduct support is currently matrix-specific. For `matrix = "HCCA"`,
-PeakGuideR can check whether a candidate compound and inferred adduct are present
-in the HCCA standard-adduct library.
+## Standard-adduct support
 
-In this context, HCCA refers to alpha-cyano-4-hydroxycinnamic acid. The
-standard-adduct library was generated using an HCCA-based solid ionic matrix
-combined with N,N-diethylaniline (DEA) deposited by low-temperature thermal evaporation.
+Standard-adduct support is currently matrix-specific. For `matrix = "HCCA"`, PeakGuideR can check whether a candidate compound and inferred adduct are present in the HCCA standard-adduct library.
 
-Standard-adduct support should therefore be interpreted as matrix- and
-preparation-specific evidence, not as universal adduct evidence for all MALDI
-matrices or deposition protocols.
+In this context, HCCA refers to alpha-cyano-4-hydroxycinnamic acid. The standard-adduct library was generated using an HCCA-based solid ionic matrix combined with N,N-diethylaniline (DEA) deposited by low-temperature thermal evaporation.
+
+> **Interpretation note**  
+> Standard-adduct support should be interpreted as matrix- and preparation-specific evidence, not as universal adduct evidence for all MALDI matrices or deposition protocols.
+
+---
 
 ## Important interpretation note
 
 PeakGuideR outputs are evidence layers for annotation support.
 
-A database match in `neutral_mass_candidates` means that the inferred neutral
-mass is compatible with a candidate compound within the selected ppm tolerance.
-It does not constitute definitive compound identification.
+A database match in `neutral_mass_candidates` means that the inferred neutral mass is compatible with a candidate compound within the selected ppm tolerance. It does not constitute definitive compound identification.
 
-Experimental validation, MS/MS, standards or orthogonal evidence may be required
-for confident identification.
+Experimental validation, MS/MS, standards or orthogonal evidence may be required for confident identification.
+
+---
 
 ## Data licensing notice
 
-PeakGuideR includes small example compound and standard-adduct databases for
-testing and demonstration. Full annotation databases are distributed separately
-for non-commercial research use.
+PeakGuideR includes small example compound and standard-adduct databases for testing and demonstration. Full annotation databases are distributed separately for non-commercial research use.
 
-These datasets include records derived from ChEBI, NORMAN and HMDB.
-ChEBI and NORMAN/SusDat records are distributed under CC BY 4.0 terms.
-HMDB-derived records are subject to CC BY-NC 4.0 non-commercial use restrictions
-according to the original HMDB licensing terms.
+These datasets include records derived from ChEBI, NORMAN and HMDB. ChEBI and NORMAN/SusDat records are distributed under CC BY 4.0 terms. HMDB-derived records are subject to CC BY-NC 4.0 non-commercial use restrictions according to the original HMDB licensing terms.
 
-The databases are used only to retrieve putative mass-matched candidates and do
-not constitute compound identification. Users are responsible for ensuring that
-their use complies with the original providers' licenses.
+The databases are used only to retrieve putative mass-matched candidates and do not constitute compound identification. Users are responsible for ensuring that their use complies with the original providers' licenses.
+
+---
 
 ## Citation
 
-If you use PeakGuideR, please cite the package and the corresponding Zenodo
-database record when using the full annotation databases.
+If you use PeakGuideR, please cite the package and the corresponding Zenodo database record when using the full annotation databases.
 
 Zenodo database record: `https://doi.org/10.5281/zenodo.20705395`
