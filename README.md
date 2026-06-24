@@ -5,7 +5,7 @@
 
 <img src="man/figures/PeakGuideR_logo.png"
      align="right"
-     width="360"
+     width="320"
      alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"/>
 
 **PeakGuideR** is an R package for evidence-based annotation support in spatial metabolomics peak data.
