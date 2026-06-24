@@ -1,27 +1,18 @@
-<div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px;">
-
-<div>
-
 # PeakGuideR
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-</div>
-
 <img src="man/figures/PeakGuideR_logo.png"
-     alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"
-     width="320"/>
-
-</div>
+     align="right"
+     width="360"
+     alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"/>
 
 **PeakGuideR** is an R package for evidence-based annotation support in spatial metabolomics peak data.
 
 The package combines complementary evidence layers, including isotope morphology, carbon isotope-ratio support, elemental isotope-pattern support, adduct-family grouping, neutral-mass inference and database matching.
 
-> **Important**  
-> PeakGuideR does **not** provide definitive compound identification. Its outputs should be interpreted as putative annotation evidence that can guide downstream validation.
-
+PeakGuideR does **not** provide definitive compound identification. Its outputs should be interpreted as putative annotation evidence that can guide downstream validation.
 
 
 ## Overview
