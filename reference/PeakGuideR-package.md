@@ -10,6 +10,8 @@ Useful links:
 
 - [doi:10.5281/zenodo.20705395](https://doi.org/10.5281/zenodo.20705395)
 
+- <https://nadiamolto.github.io/PeakGuideR/>
+
 ## Author
 
 **Maintainer**: Nadia Molto <nadia.molto@gmail.com>
