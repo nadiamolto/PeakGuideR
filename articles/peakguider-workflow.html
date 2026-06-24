@@ -342,70 +342,90 @@ supporting each family.</p></li>
 <div class="section level2">
 <h2 id="peak-relationship-network">Peak relationship network<a class="anchor" aria-label="anchor" href="#peak-relationship-network"></a>
 </h2>
-<p>The relation table can also be visualised as a feature network with
-<code><a href="../reference/plot_peak_network.html">plot_peak_network()</a></code>.</p>
-<p>In this plot, nodes represent m/z features and edges represent
-relationships supported by the workflow, such as isotope, EIPS or adduct
-relationships.</p>
+<p>It is possible to display interactive networks of the relationships
+detected by the workflow.</p>
+<p>Nodes represent m/z features and edges represent evidence-supported
+relationships between features. The full network gives a global overview
+of how features are connected across the dataset, while focused networks
+can be used to inspect specific adduct families or the neighbourhood of
+individual peaks.</p>
+<div class="section level3">
+<h3 id="full-evidence-network">Full evidence network<a class="anchor" aria-label="anchor" href="#full-evidence-network"></a>
+</h3>
+<p>First, the complete relation table can be visualised as an
+exploratory evidence network:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span></span>
-<span>  relation_table <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">relation_table</span></span>
+<span>  relation_table <span class="op">=</span> <span class="va">res</span>,</span>
+<span>  min_score <span class="op">=</span> <span class="fl">0.3</span>,</span>
+<span>  only_valid <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  show_edge_labels <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>By default, the function plots valid relationships with an evidence
-score of at least 0.3. This threshold can be increased to focus on
-stronger relationships:</p>
+<p>This global view is useful for detecting highly connected regions of
+the feature network.</p>
+</div>
+<div class="section level3">
+<h3 id="focused-adduct-family-network">Focused adduct-family network<a class="anchor" aria-label="anchor" href="#focused-adduct-family-network"></a>
+</h3>
+<p>For interpretation, it is often more useful to inspect one adduct
+family at a time. Here, we select one of the strongest adduct families
+detected in the example workflow:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span></span>
-<span>  relation_table <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">relation_table</span>,</span>
-<span>  min_score <span class="op">=</span> <span class="fl">0.5</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>The optional <code>idx_focus</code> argument can be used to inspect
-the neighbourhood of a specific feature:</p>
+<code class="sourceCode R"><span><span class="va">network_family_id</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">$</span><span class="va">adduct_families</span><span class="op">$</span><span class="va">family_summary</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span></span>
+<span>    <span class="va">family_size</span> <span class="op">&gt;</span> <span class="fl">1</span>,</span>
+<span>    <span class="va">n_edges</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span></span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/desc.html" class="external-link">desc</a></span><span class="op">(</span><span class="va">mean_score_adduct</span><span class="op">)</span>,</span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/desc.html" class="external-link">desc</a></span><span class="op">(</span><span class="va">family_size</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/slice.html" class="external-link">slice</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">family_id</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">res</span><span class="op">$</span><span class="va">adduct_families</span><span class="op">$</span><span class="va">family_summary</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">family_id</span> <span class="op">==</span> <span class="va">network_family_id</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
+<span>    <span class="va">family_id</span>,</span>
+<span>    <span class="va">neutral_mass_consensus</span>,</span>
+<span>    <span class="va">family_size</span>,</span>
+<span>    <span class="va">n_edges</span>,</span>
+<span>    <span class="va">mean_score_adduct</span>,</span>
+<span>    <span class="va">adducts</span>,</span>
+<span>    <span class="va">feature_idx</span></span>
+<span>  <span class="op">)</span></span></code></pre></div>
+<p>The selected family can then be visualised interactively:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span></span>
-<span>  relation_table <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">relation_table</span>,</span>
-<span>  idx_focus <span class="op">=</span> <span class="fl">25</span></span>
+<span>  relation_table <span class="op">=</span> <span class="va">res</span>,</span>
+<span>  family_id <span class="op">=</span> <span class="va">network_family_id</span>,</span>
+<span>  min_score <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  show_edge_labels <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>This visualisation is exploratory. Connected features should be
-interpreted as putative relationships, not as definitive
-annotations.</p>
+<p>In this focused network, connected nodes represent features
+compatible with thesame inferred neutral mass through one or more adduct
+relationships. Edge labels indicate the compatible adduct transition,
+and tooltips provide additional information such as m/z values, adduct
+roles, evidence score and inferred neutral mass.</p>
+</div>
+<div class="section level3">
+<h3 id="feature-centred-network">Feature-centred network<a class="anchor" aria-label="anchor" href="#feature-centred-network"></a>
+</h3>
+<p>The <code>idx_focus</code> argument can be used to inspect the local
+neighbourhood of a specific feature:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span></span>
-<span>  relation_table <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">relation_table</span>,</span>
-<span>  min_score <span class="op">=</span> <span class="fl">0.3</span>,</span>
-<span>  only_valid <span class="op">=</span> <span class="cn">TRUE</span></span>
+<code class="sourceCode R"><span></span>
+<span><span class="fu"><a href="../reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span></span>
+<span>  relation_table <span class="op">=</span> <span class="va">res</span>,</span>
+<span>  idx_focus <span class="op">=</span> <span class="fl">39</span>,</span>
+<span>  min_score <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  only_valid <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  show_edge_labels <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>The optional <code>idx_focus</code> argument can be used to visualise
-the neighbourhood of a specific feature:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span></span>
-<span>  relation_table <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">relation_table</span>,</span>
-<span>  min_score <span class="op">=</span> <span class="fl">0.6</span>,</span>
-<span>  idx_focus <span class="op">=</span> <span class="fl">25</span>,</span>
-<span>  only_valid <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>Useful arguments include:</p>
-<ul>
-<li>
-<code>relation_table</code>: relation table returned by
-<code><a href="../reference/run_peakguider_workflow.html">run_peakguider_workflow()</a></code>.</li>
-<li>
-<code>min_score</code>: minimum evidence score required to draw an
-edge.</li>
-<li>
-<code>idx_focus</code>: optional feature index used to focus the
-network around one peak.</li>
-<li>
-<code>only_valid</code>: whether to plot only relationships that
-passed the validity criteria.</li>
-<li>
-<code>show_edge_labels</code>: whether to show relationship labels
-on the network edges.</li>
-</ul>
-<p>The network should be interpreted as an exploratory visualisation.
-Connected features are not necessarily definitive annotations; they
-represent putative relationships supported by the evidence layers used
-by PeakGuideR.</p>
+<p>The network is intended as an exploratory visualisation. Connected
+features should be interpreted as putative evidence-supported
+relationships, not as definitive compound annotations.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="neutral-mass-candidates">Neutral-mass candidates<a class="anchor" aria-label="anchor" href="#neutral-mass-candidates"></a>
@@ -414,7 +434,7 @@ by PeakGuideR.</p>
 table.</p>
 <p>It contains one row per inferred neutral mass and candidate compound
 match.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">neutral_mass_candidates</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">neutral_mass_id</span>,</span>
@@ -471,7 +491,7 @@ putative candidate, not as definitive identification.</p>
 </h2>
 <p>A quick summary of database and standard-adduct support can be
 obtained with:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">neutral_mass_candidates</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
 <span>    n_rows <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -493,18 +513,18 @@ demonstration.</p>
 databases from Zenodo: <a href="https://doi.org/10.5281/zenodo.20705395" class="external-link uri">https://doi.org/10.5281/zenodo.20705395</a></p>
 <p>After downloading the files, they can be loaded manually replacing
 the paths below with the real local paths</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">compound_db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"path/to/compound_mass_database"</span><span class="op">)</span></span>
 <span><span class="va">standards_db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"path/to/adducts_database"</span><span class="op">)</span></span></code></pre></div>
 <p>or using the helper function (also replace the file paths below with
 the local paths where the downloaded database files were saved.:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dbs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_peakguider_databases.html">load_peakguider_databases</a></span><span class="op">(</span></span>
 <span>  compound_db_path <span class="op">=</span> <span class="st">"path/to/compound_mass_database.rds"</span>,</span>
 <span>  standards_db_path <span class="op">=</span> <span class="st">"path/to/standards_adduct_database.rds"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Then pass them to the workflow:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_peakguider_workflow.html">run_peakguider_workflow</a></span><span class="op">(</span></span>
 <span>  pkm <span class="op">=</span> <span class="va">pkm</span>,</span>
 <span>  ion_mode <span class="op">=</span> <span class="st">"pos"</span>,</span>
