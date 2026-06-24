@@ -3,19 +3,16 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-<img src="man/figures/PeakGuideR_logo.png"
-     align="right"
-     width="360"
-     alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"/>
-     
----     
+<img src="man/figures/PeakGuideR_logo.png" align="right" width="360" alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"/>
+
 **PeakGuideR** is an R package for evidence-based annotation support in MALDI-MSI metabolomics data.
 
 PeakGuideR transforms spatial metabolomics peak data into evidence-supported annotation maps. By combining isotope morphology, carbon isotope-ratio support (CIR), elemental isotope-pattern support (EIPS), adduct-edge detection, network-based adduct-family grouping, neutral-mass inference and database matching, the package helps reveal which peaks are connected, which features may belong to the same molecular family and which candidates are best supported by the available evidence.
 
 PeakGuideR does **not** provide definitive compound identification. Its goal is to make putative annotation evidence more transparent, interpretable and easier to prioritize before downstream validation.
 
----
+<br clear="right"/>
+
 
 ## Overview
 
@@ -69,7 +66,24 @@ res <- run_peakguider_workflow(
 ### From a Cardinal MSI object
 
 ```r
-res <- run_peakguider_workflow(
+res <-# PeakGuideR
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+<img src="man/figures/PeakGuideR_logo.png"
+     align="right"
+     width="360"
+     alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"/>
+
+---
+
+**PeakGuideR** is an R package for evidence-based annotation support in MALDI-MSI metabolomics data.
+
+PeakGuideR transforms spatial metabolomics peak data into evidence-supported annotation maps. By combining isotope morphology, carbon isotope-ratio support (CIR), elemental isotope-pattern support (EIPS), adduct-edge detection, network-based adduct-family grouping, neutral-mass inference and database matching, the package helps reveal which peaks are connected, which features may belong to the same molecular family and which candidates are best supported by the available evidence.
+
+PeakGuideR does **not** provide definitive compound identification. Its goal is to make putative annotation evidence more transparent, interpretable and easier to prioritize before downstream validation.
+ run_peakguider_workflow(
   pkm = MSImagingExperimentObject,
   ion_mode = "pos",
   matrix = "HCCA"
