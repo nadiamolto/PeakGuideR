@@ -15,6 +15,7 @@ Useful links:
 \itemize{
   \item \url{https://github.com/nadiamolto/PeakGuideR}
   \item \doi{10.5281/zenodo.20705395}
+  \item \url{https://nadiamolto.github.io/PeakGuideR/}
 }
 
 }
