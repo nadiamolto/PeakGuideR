@@ -12,7 +12,7 @@ The package combines complementary evidence layers, including isotope morphology
 > **Important**  
 > PeakGuideR does **not** provide definitive compound identification. Its outputs should be interpreted as putative annotation evidence that can guide downstream validation.
 
----
+
 
 ## Overview
 
