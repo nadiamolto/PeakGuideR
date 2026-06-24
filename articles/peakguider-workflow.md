@@ -1,0 +1,458 @@
+# PeakGuideR workflow
+
+## Overview
+
+PeakGuideR has been developed to help interpret complex MALDI-MSI peak
+datasets, where many detected m/z features may correspond to isotopes,
+adducst, matrix-related signals or alternative ion forms of the same
+underlying molecule.
+
+IThe main idea of the workflos is to combine several proves of evidence
+that are often checked separately (see what the peaks are telling us):
+
+- isotope morphology;
+- carbon isotope-ratio support;
+- elemental isotope-pattern support;
+- adduct-family grouping;
+- neutral-mass inference;
+- database candidate matching and adduct database validation.
+
+The output should therefore be read as annotation support rather than as
+final compound identification. In practice, the package is intended to
+help prioritise which peaks and candidate annotations are worth
+inspecting or validating further.
+
+## Input data
+
+This vignette shows the typical workflow starting from an already
+processed peak matrix. The code chunks are not evaluated during package
+checks, so `pkm` and `msi_peaks` should be replaced by the user’s own
+objects.
+
+The workflow can be run from 2 types of input:
+
+1.  a PeakGuideR peak matrix object or
+2.  a Cardinal MSI object that can be converted using
+    [`cardinal_to_peakmatrix()`](https://nadiamolto.github.io/PeakGuideR/reference/cardinal_to_peakmatrix.md).
+
+For the peak-matrix route, the object should contain at least:
+
+- `mass`: m/z values of detected features;
+- `intensity`: pixel-by-feature intensity matrix.
+
+For example:
+
+Load the example peak matrix:
+
+``` r
+
+library(PeakGuideR)
+
+data("example_pkm", package = "PeakGuideR")
+
+pkm <- example_pkm
+
+str(pkm)
+```
+
+## Running the workflow
+
+For a standard analysis, the workflow can be run with only the peak
+matrix, the ionisation mode and, optionally, the MALDI matrix:.
+
+``` r
+
+library(PeakGuideR)
+
+res <- run_peakguider_workflow(
+  pkm = example_pkm,
+  ion_mode = "pos", #or "neg" for negative ionization
+  matrix = "HCCA",#or NULL if it is not HCCA (until the moment, only HCCA matrix has been included in the library)
+  quiet=TRUE)
+```
+
+Use `ion_mode = "neg"` for negative-ion mode data. The `matrix` argument
+is used only for matrix-specific standard-adduct support. Currently,
+PeakGuideR includes standard-adduct support for HCCA+DEA (ionic matrix);
+use `matrix = NULL` when this evidence layer should not be used
+(recommended if you are using another matrix).
+
+If the data are stored as a Cardinal MSI object, the same workflow can
+be called using `cardinal_object`:
+
+``` r
+
+res <- run_peakguider_workflow(
+  pkm = msi_peaks,
+  ion_mode = "pos",
+  matrix = "HCCA"
+)
+```
+
+Internally, Cardinal objects are converted to peak-matrix format using
+[`cardinal_to_peakmatrix()`](https://nadiamolto.github.io/PeakGuideR/reference/cardinal_to_peakmatrix.md).
+
+The returned object is a list with class `peakguider_workflow`:
+
+``` r
+
+class(res)
+names(res)
+```
+
+The workflow stores both intermediate evidence tables and final summary
+tables:
+
+- `morph_results`: candidate isotope relationships supported by spatial
+  morphology;
+- `cir_results`: C13 isotope-ratio evidence for candidate isotope pairs;
+- `eips_results`: elemental isotope-pattern evidence for non-carbon
+  elements;
+- `adduct_edges`: pairwise adduct relationships between features;
+- `adduct_families`: groups of features compatible with the same
+  inferred neutral mass;
+- `relation_table`: a unified table collecting the feature-feature
+  relationships;
+- `feature_summary`: one row per detected m/z feature;
+- `neutral_mass_candidates`: inferred neutral masses with database
+  candidate matches.
+
+## Feature-level summary
+
+`feature_summary` contains one row per detected m/z feature.
+
+This table is usually the first object to inspect, because it gives a
+feature-by-feature view of the evidence found by the workflow. It
+reports whether each feature has support for:
+
+- being a monoisotopic peak with C13 support;
+- being a C13 M+1 or M+2 isotope peak;
+- having elemental isotope-pattern support;
+- belonging to an adduct family;
+- contributing to an inferred neutral mass.
+
+``` r
+
+res$feature_summary |>
+  dplyr::select(
+    idx,
+    mz,
+    is_c13_m0,
+    c13_m1_idx,
+    c13_score,
+    has_c13_m2_support,
+    has_eips,
+    eips_elements,
+    has_adduct_family,
+    adduct_roles,
+    main_adduct_role,
+    neutral_mass_consensus
+  ) |>
+  head()
+```
+
+Useful columns include:
+
+- `idx`: feature index.
+- `mz`: feature m/z value.
+- `is_c13_m0`: whether the feature is supported as a monoisotopic peak.
+- `c13_m1_idx`: index of the putative C13 M+1 partner.
+- `c13_score`: carbon isotope-ratio support score.
+- `has_c13_m2_support`: whether C13 M+2 support was detected.
+- `has_eips`: whether elemental isotope-pattern support was detected.
+- `eips_elements`: elements supporting the EIPS evidence.
+- `has_adduct_family`: whether the feature belongs to an inferred adduct
+  family.
+- `adduct_roles`: inferred adduct role or roles for the feature.
+- `main_adduct_role`: main adduct role assigned from the strongest
+  adduct family.
+- `neutral_mass_consensus`: inferred neutral mass associated with the
+  main adduct family.
+
+A feature can have more than one type of evidence. For example, the same
+m/z feature may be interpreted as a monoisotopic peak with C13 support
+and also as a member of an adduct family.
+
+C13 evidence should be interpreted as relationship-based evidence. In
+simple cases, PeakGuideR reports a candidate monoisotopic feature
+(`M+0`) and its supported C13 isotopic features (`M+1` or `M+2`). In
+chained C13 patterns, a feature may be involved in more than one isotope
+relationship, for example as part of an `M+0 -> M+1 -> M+2` series.
+These cases are flagged with `is_chained_c13` and should be inspected in
+`relation_table` before assigning a final interpretation. \# Relation
+table
+
+`relation_table` is useful when we want to see the individual
+relationships that led to the final feature-level summary.
+
+It collects relationships detected by different modules into a common
+table.
+
+``` r
+
+res$relation_table |>
+  dplyr::select(
+    from_idx,
+    to_idx,
+    from_mz,
+    to_mz,
+    relation_type,
+    evidence_type,
+    evidence_score,
+    is_valid,
+    group_id,
+    from_role,
+    to_role
+  ) |>
+  head()
+```
+
+Useful columns include:
+
+- `from_idx`, `to_idx`: feature indices connected by the relationship.
+- `from_mz`, `to_mz`: m/z values of the connected features.
+- `relation_type`: type of relationship, such as C13, EIPS or adduct
+  relation.
+- `evidence_type`: evidence layer supporting the relationship.
+- `evidence_score`: score associated with the relationship.
+- `is_valid`: whether the relationship passed the selected threshold.
+- `group_id`: group identifier, for example an adduct family ID.
+- `from_role`, `to_role`: interpreted roles of the connected features.
+
+This table is useful for tracing why a given feature was assigned a
+particular role in `feature_summary`.
+
+## Adduct families
+
+`adduct_families` groups pairwise adduct relationships into families of
+features that are compatible with the same inferred neutral mass.
+
+``` r
+
+names(res$adduct_families)
+```
+
+The object contains three components:
+
+- `family_summary`: one row per inferred adduct family;
+
+- `family_members`: features assigned to each family and their inferred
+  adduct roles;
+
+- `family_edges`: pairwise adduct relationships supporting each family.
+
+``` r
+
+res$adduct_families$family_summary |>
+  head()
+
+res$adduct_families$family_members |>
+  head()
+
+res$adduct_families$family_edges |>
+  head()
+```
+
+## Peak relationship network
+
+The relation table can also be visualised as a feature network with
+[`plot_peak_network()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_peak_network.md).
+
+In this plot, nodes represent m/z features and edges represent
+relationships supported by the workflow, such as isotope, EIPS or adduct
+relationships.
+
+``` r
+
+plot_peak_network(
+  relation_table = res$relation_table
+)
+```
+
+By default, the function plots valid relationships with an evidence
+score of at least 0.3. This threshold can be increased to focus on
+stronger relationships:
+
+``` r
+
+plot_peak_network(
+  relation_table = res$relation_table,
+  min_score = 0.5
+)
+```
+
+The optional `idx_focus` argument can be used to inspect the
+neighbourhood of a specific feature:
+
+``` r
+
+plot_peak_network(
+  relation_table = res$relation_table,
+  idx_focus = 25
+)
+```
+
+This visualisation is exploratory. Connected features should be
+interpreted as putative relationships, not as definitive annotations.
+
+``` r
+
+plot_peak_network(
+  relation_table = res$relation_table,
+  min_score = 0.3,
+  only_valid = TRUE
+)
+```
+
+The optional `idx_focus` argument can be used to visualise the
+neighbourhood of a specific feature:
+
+``` r
+
+plot_peak_network(
+  relation_table = res$relation_table,
+  min_score = 0.6,
+  idx_focus = 25,
+  only_valid = TRUE
+)
+```
+
+Useful arguments include:
+
+- `relation_table`: relation table returned by
+  [`run_peakguider_workflow()`](https://nadiamolto.github.io/PeakGuideR/reference/run_peakguider_workflow.md).
+- `min_score`: minimum evidence score required to draw an edge.
+- `idx_focus`: optional feature index used to focus the network around
+  one peak.
+- `only_valid`: whether to plot only relationships that passed the
+  validity criteria.
+- `show_edge_labels`: whether to show relationship labels on the network
+  edges.
+
+The network should be interpreted as an exploratory visualisation.
+Connected features are not necessarily definitive annotations; they
+represent putative relationships supported by the evidence layers used
+by PeakGuideR.
+
+## Neutral-mass candidates
+
+`neutral_mass_candidates` is the main candidate annotation table.
+
+It contains one row per inferred neutral mass and candidate compound
+match.
+
+``` r
+
+res$neutral_mass_candidates |>
+  dplyr::select(
+    neutral_mass_id,
+    neutral_mass_consensus,
+    inferred_adducts,
+    candidate_source,
+    candidate_db_id,
+    candidate_name,
+    candidate_formula,
+    candidate_neutral_mass,
+    candidate_ppm_error,
+    has_standard_compound_match,
+    has_standard_adduct_match
+  ) |>
+  dplyr::filter(!is.na(candidate_name)) |>
+  head()
+```
+
+Useful columns include:
+
+- `neutral_mass_id`: internal neutral-mass group identifier.
+- `neutral_mass_consensus`: inferred neutral mass.
+- `inferred_adducts`: adducts supporting the inferred neutral mass.
+- `candidate_source`: source database of the candidate match.
+- `candidate_db_id`: database identifier.
+- `candidate_name`: candidate compound name.
+- `candidate_formula`: candidate molecular formula.
+- `candidate_neutral_mass`: neutral monoisotopic mass from the database.
+- `candidate_ppm_error`: mass error between the inferred neutral mass
+  and the candidate.
+- `has_standard_compound_match`: whether the candidate compound is
+  present in the standard-adduct library.
+- `has_standard_adduct_match`: whether the inferred adduct is supported
+  for that compound in the standard-adduct library.
+
+The database match is mass-based and should be interpreted as a putative
+candidate, not as definitive identification.
+
+## Summarising candidate matches
+
+A quick summary of database and standard-adduct support can be obtained
+with:
+
+``` r
+
+res$neutral_mass_candidates |>
+  dplyr::summarise(
+    n_rows = dplyr::n(),
+    n_neutral_masses = dplyr::n_distinct(neutral_mass_id),
+    n_rows_with_candidate = sum(!is.na(candidate_name)),
+    n_neutral_masses_with_candidate = dplyr::n_distinct(
+      neutral_mass_id[!is.na(candidate_name)]
+    ),
+    n_with_standard_compound_match = sum(has_standard_compound_match %in% TRUE),
+    n_with_standard_adduct_match = sum(has_standard_adduct_match %in% TRUE)
+  )
+```
+
+## Using full databases from Zenodo
+
+PeakGuideR includes small example databases for testing and
+demonstration.
+
+For real analyses, users should download the full non-commercial
+databases from Zenodo: <https://doi.org/10.5281/zenodo.20705395>
+
+After downloading the files, they can be loaded manually replacing the
+paths below with the real local paths
+
+``` r
+
+compound_db <- readRDS("path/to/compound_mass_database")
+standards_db <- readRDS("path/to/adducts_database")
+```
+
+or using the helper function (also replace the file paths below with the
+local paths where the downloaded database files were saved.:
+
+``` r
+
+dbs <- load_peakguider_databases(
+  compound_db_path = "path/to/compound_mass_database.rds",
+  standards_db_path = "path/to/standards_adduct_database.rds"
+)
+```
+
+Then pass them to the workflow:
+
+``` r
+
+res <- run_peakguider_workflow(
+  pkm = pkm,
+  ion_mode = "pos",
+  matrix = "HCCA",
+  compound_db = dbs$compound_db,
+  standards_db = dbs$standards_db
+)
+```
+
+## Interpretation
+
+PeakGuideR combines multiple evidence layers to support annotation.
+
+However:
+
+- isotope or adduct evidence does not prove compound identity,
+- database matches are mass-based candidates,
+- standard-adduct support is matrix- and preparation-specific,
+- definitive identification may require MS/MS, standards or orthogonal
+  validation.
+
+The recommended interpretation is to use PeakGuideR outputs to
+prioritise candidate annotations for downstream validation.
