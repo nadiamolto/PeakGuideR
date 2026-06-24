@@ -15,8 +15,6 @@ matching.
 > Its outputs should be interpreted as putative annotation evidence that
 > can guide downstream validation.
 
-------------------------------------------------------------------------
-
 ## Overview
 
 PeakGuideR integrates several evidence layers for spatial metabolomics
