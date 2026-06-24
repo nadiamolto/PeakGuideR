@@ -1,4 +1,4 @@
-<img src="man/figures/PeakGuideR_logo.png" align="right" width="180"/>
+<img src="man/figures/PeakGuideR_logo.png" align="right" width="320"/>
 
 # PeakGuideR
 
