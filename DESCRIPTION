@@ -9,7 +9,8 @@ Authors@R:
     role = c("aut", "cre"),
     comment = c(ORCID= "0009-0003-0042-4997")))
 Description: Provides tools for evidence-based annotation of MALDI mass spectrometry imaging features from peak matrix data. PeakGuideR integrates isotope morphology detection, 
-    carbon isotope-ratio validation, elemental isotope-pattern support, adduct-family detection, and optional neutral-mass database matching.
+    carbon isotope-ratio validation, elemental isotope-pattern support, adduct-family detection, and optional neutral-mass database matching. It also provides interactive network 
+    visualisation of isotope, elemental isotope-pattern and adduct-family relationships between detected features.
     Optional compound and strandard-adduct databases included with the package are intended for non-comercial research use and may be subject to third party data licencing terms.
 URL: https://github.com/nadiamolto/PeakGuideR, https://doi.org/10.5281/zenodo.20705395, https://nadiamolto.github.io/PeakGuideR/
 License: GPL-3
@@ -33,7 +34,8 @@ Suggests:
     igraph,
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    visNetwork
 biocViews:
     MassSpectrometry,
     Metabolomics,

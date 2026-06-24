@@ -241,76 +241,87 @@ res$adduct_families$family_edges |>
 ```
 
 
-
-
 # Peak relationship network
 
-The relation table can also be visualised as a feature network with `plot_peak_network()`.
+It is possible to display interactive networks of the relationships detected by the workflow.
 
-In this plot, nodes represent m/z features and edges represent relationships
-supported by the workflow, such as isotope, EIPS or adduct relationships.
+Nodes represent m/z features and edges represent evidence-supported
+relationships between features. The full network gives a global overview of how features are connected across the dataset, while focused networks can be used to inspect specific adduct families or the neighbourhood of individual peaks.
 
-```{r peak-network}
+## Full evidence network
+
+First, the complete relation table can be visualised as an exploratory evidence network:
+
+```{r peak-network-full}
 plot_peak_network(
-  relation_table = res$relation_table
+  relation_table = res,
+  min_score = 0.3,
+  only_valid = TRUE,
+  show_edge_labels = FALSE
 )
 ```
 
-By default, the function plots valid relationships with an evidence score of at
-least 0.3. This threshold can be increased to focus on stronger relationships:
+This global view is useful for detecting highly connected regions of the feature network.
 
-```{r peak-network-strict}
+## Focused adduct-family network
+
+For interpretation, it is often more useful to inspect one adduct family at a time. Here, we select one of the strongest adduct families detected in the example workflow:
+
+```{r select-network-family}
+network_family_id <- res$adduct_families$family_summary |>
+  dplyr::filter(
+    family_size > 1,
+    n_edges > 0
+  ) |>
+  dplyr::arrange(
+    dplyr::desc(mean_score_adduct),
+    dplyr::desc(family_size)
+  ) |>
+  dplyr::slice(1) |>
+  dplyr::pull(family_id)
+
+res$adduct_families$family_summary |>
+  dplyr::filter(family_id == network_family_id) |>
+  dplyr::select(
+    family_id,
+    neutral_mass_consensus,
+    family_size,
+    n_edges,
+    mean_score_adduct,
+    adducts,
+    feature_idx
+  )
+```
+
+The selected family can then be visualised interactively:
+
+```{r peak-network-family}
 plot_peak_network(
-  relation_table = res$relation_table,
-  min_score = 0.5
+  relation_table = res,
+  family_id = network_family_id,
+  min_score = 0.5,
+  show_edge_labels = TRUE
 )
 ```
 
-The optional `idx_focus` argument can be used to inspect the neighbourhood of a
-specific feature:
+In this focused network, connected nodes represent features compatible with thesame inferred neutral mass through one or more adduct relationships. Edge labels indicate the compatible adduct transition, and tooltips provide additional information such as m/z values, adduct roles, evidence score and inferred neutral mass.
+
+## Feature-centred network
+
+The `idx_focus` argument can be used to inspect the local neighbourhood of a specific feature:
 
 ```{r peak-network-focus}
+
 plot_peak_network(
-  relation_table = res$relation_table,
-  idx_focus = 25
+  relation_table = res,
+  idx_focus = 39,
+  min_score = 0.5,
+  only_valid = TRUE,
+  show_edge_labels = TRUE
 )
 ```
 
-This visualisation is exploratory. Connected features should be interpreted as
-putative relationships, not as definitive annotations.
-
-```{r peak-network-score}
-plot_peak_network(
-  relation_table = res$relation_table,
-  min_score = 0.3,
-  only_valid = TRUE
-)
-```
-
-The optional `idx_focus` argument can be used to visualise the neighbourhood of
-a specific feature:
-
-```{r peak-network-focus-score}
-plot_peak_network(
-  relation_table = res$relation_table,
-  min_score = 0.6,
-  idx_focus = 25,
-  only_valid = TRUE
-)
-```
-
-Useful arguments include:
-
-- `relation_table`: relation table returned by `run_peakguider_workflow()`.
-- `min_score`: minimum evidence score required to draw an edge.
-- `idx_focus`: optional feature index used to focus the network around one peak.
-- `only_valid`: whether to plot only relationships that passed the validity criteria.
-- `show_edge_labels`: whether to show relationship labels on the network edges.
-
-The network should be interpreted as an exploratory visualisation. Connected
-features are not necessarily definitive annotations; they represent putative
-relationships supported by the evidence layers used by PeakGuideR.
-
+The network is intended as an exploratory visualisation. Connected features should be interpreted as putative evidence-supported relationships, not as definitive compound annotations.
 
 # Neutral-mass candidates
 

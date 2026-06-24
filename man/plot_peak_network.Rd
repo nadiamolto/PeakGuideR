@@ -8,29 +8,52 @@ plot_peak_network(
   relation_table,
   min_score = 0.3,
   idx_focus = NULL,
+  family_id = NULL,
+  only_valid = TRUE,
+  show_edge_labels = TRUE
+)
+
+plot_peak_network(
+  relation_table,
+  min_score = 0.3,
+  idx_focus = NULL,
+  family_id = NULL,
   only_valid = TRUE,
   show_edge_labels = TRUE
 )
 }
 \arguments{
-\item{relation_table}{Output from \code{build_relation_table()}.}
+\item{relation_table}{A \code{peakguider_workflow} object, a relation table from
+\code{build_relation_table()}, or an adduct edge table.}
 
 \item{min_score}{Minimum evidence score required to plot an edge.}
 
 \item{idx_focus}{Optional vector of feature indices to focus on. If supplied,
 only relations involving these features and their direct neighbours are shown.}
 
-\item{only_valid}{Logical. If \code{TRUE}, only valid relations are plotted.}
+\item{family_id}{Optional adduct family ID to display. If supplied, the
+network is restricted to the selected adduct family when family information
+is available.}
+
+\item{only_valid}{Logical. If \code{TRUE}, only valid relations are plotted when a
+validity column is available.}
 
 \item{show_edge_labels}{Logical. If \code{TRUE}, shows edge labels.}
 }
 \value{
-Invisibly returns the igraph object.
+A \code{visNetwork} htmlwidget.
 }
 \description{
-Plots a simple network of peak-to-peak relationships from a relation table.
+Creates an interactive network of peak-to-peak relationships using
+\code{visNetwork}.
+
+...
+
+Creates an interactive network of peak-to-peak relationships using
+\code{visNetwork}.
 
 Nodes are MSI features and edges represent isotope, EIPS or adduct evidence.
-The function does not perform annotation decisions; it only visualizes the
-relations already present in \code{relation_table}.
+If a \code{peakguider_workflow} object is supplied, adduct-family information is
+used when available to display adduct roles, family IDs and consensus neutral
+masses.
 }
