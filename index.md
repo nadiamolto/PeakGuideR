@@ -15,6 +15,8 @@ PeakGuideR does **not** provide definitive compound identification. Its
 outputs should be interpreted as putative annotation evidence that can
 guide downstream validation.
 
+  
+
 ## Overview
 
 PeakGuideR integrates several evidence layers for spatial metabolomics
@@ -323,7 +325,7 @@ for testing and demonstration. Full annotation databases are distributed
 separately for non-commercial research use.
 
 These datasets include records derived from ChEBI, NORMAN and HMDB.
-ChEBI and NORMAN/SusDat records are distributed under CC BY 4.0 terms.
+ChEBI and NORMAN records are distributed under CC BY 4.0 terms.
 HMDB-derived records are subject to CC BY-NC 4.0 non-commercial use
 restrictions according to the original HMDB licensing terms.
 
