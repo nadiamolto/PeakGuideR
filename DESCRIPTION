@@ -1,5 +1,5 @@
 Package: PeakGuideR
-Title: Evidence-Based Annotation of MALDI-MSI Metabolites Features
+Title: Evidence-based Annotation Support for MALDI-MSI Peak Features
 Version: 0.0.0.9000
 Authors@R: 
     c(person(
