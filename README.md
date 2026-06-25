@@ -244,8 +244,8 @@ These full databases are distributed separately because they include third-party
 After downloading the files from Zenodo, load them in R:
 
 ```r
-compound_db <- readRDS("path/to/compound_mass_database_noncommercial.rds")
-standards_db <- readRDS("path/to/standards_adduct_library_noncommercial.rds")
+compound_db <- readRDS("path/to/compound_mass_database.rds")
+standards_db <- readRDS("path/to/standards_adduct_library.rds")
 ```
 
 Then pass them to the workflow:
@@ -260,12 +260,12 @@ res <- run_peakguider_workflow(
 )
 ```
 
-Alternatively, if available in your installed version, use:
+Alternatively, you can load directly the databases using:
 
 ```r
 dbs <- load_peakguider_databases(
-  compound_db_path = "path/to/compound_mass_database_noncommercial.rds",
-  standards_db_path = "path/to/standards_adduct_library_noncommercial.rds"
+  compound_db_path = "path/to/compound_mass_database.rds",
+  standards_db_path = "path/to/standards_adduct_library.rds"
 )
 
 res <- run_peakguider_workflow(
