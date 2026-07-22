@@ -88,7 +88,8 @@ are clipped in adduct detection.}
 
 \item{candidate_ppm_tol}{PPM tolerance for compound candidate matching.}
 
-\item{top_n}{Maximum number of compound candidates per neutral mass.}
+\item{top_n}{Maximum number of compound candidates per neutral mass.
+Use \code{NULL} to retain all candidates within \code{candidate_ppm_tol}.}
 
 \item{quiet}{Logical. If \code{FALSE}, prints progress messages.}
 }

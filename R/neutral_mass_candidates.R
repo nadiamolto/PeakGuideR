@@ -25,6 +25,7 @@
 #' @param neutral_cluster_ppm PPM tolerance used to group similar neutral masses
 #'   inferred from different adduct families.
 #' @param top_n Maximum number of compound candidates kept per neutral mass.
+#' Use `NULL` to retain all candidates within `ppm_tol`.
 #' @param quiet Logical. If `FALSE`, database loading functions may print notices.
 #'
 #' @return A data.frame with one row per neutral mass and compound candidate.
@@ -84,9 +85,15 @@ build_neutral_mass_candidates <- function(
     )
   }
 
-  top_n <- as.integer(top_n)
-  if (!is.finite(top_n) || top_n < 1L) {
-    top_n <- 10L
+  if (!is.null(top_n)) {
+    top_n <- as.integer(top_n)
+
+    if (length(top_n) != 1L || !is.finite(top_n) || top_n < 1L) {
+      stop(
+        "`top_n` must be NULL or a positive integer.",
+        call. = FALSE
+      )
+    }
   }
 
   ppm_tol <- as.numeric(ppm_tol)
@@ -289,10 +296,19 @@ build_neutral_mass_candidates <- function(
       is.finite(candidate_ppm_error),
       candidate_ppm_error <= ppm_tol
     ) |>
-    dplyr::arrange(neutral_mass_id, candidate_ppm_error) |>
-    dplyr::group_by(neutral_mass_id) |>
-    dplyr::slice_head(n = top_n) |>
-    dplyr::ungroup() |>
+    dplyr::arrange(
+      neutral_mass_id,
+      candidate_ppm_error
+    )
+
+  if (!is.null(top_n)) {
+    compound_candidates <- compound_candidates |>
+      dplyr::group_by(neutral_mass_id) |>
+      dplyr::slice_head(n = top_n) |>
+      dplyr::ungroup()
+  }
+
+  compound_candidates <- compound_candidates |>
     dplyr::rename(
       candidate_source = Source,
       candidate_db_id = DB_ID,

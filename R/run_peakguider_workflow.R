@@ -42,6 +42,7 @@
 #' @param neutral_cluster_ppm PPM tolerance used to cluster inferred neutral masses.
 #' @param candidate_ppm_tol PPM tolerance for compound candidate matching.
 #' @param top_n Maximum number of compound candidates per neutral mass.
+#' Use `NULL` to retain all candidates within `candidate_ppm_tol`.
 #' @param quiet Logical. If `FALSE`, prints progress messages.
 #'
 #' @return A list with all main PeakGuideR workflow outputs.

@@ -38,7 +38,8 @@ when \code{matrix = "HCCA"}. Use \code{NULL} to skip standard-adduct support.}
 \item{neutral_cluster_ppm}{PPM tolerance used to group similar neutral masses
 inferred from different adduct families.}
 
-\item{top_n}{Maximum number of compound candidates kept per neutral mass.}
+\item{top_n}{Maximum number of compound candidates kept per neutral mass.
+Use \code{NULL} to retain all candidates within \code{ppm_tol}.}
 
 \item{quiet}{Logical. If \code{FALSE}, database loading functions may print notices.}
 }
