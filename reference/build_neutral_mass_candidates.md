@@ -71,7 +71,8 @@ build_neutral_mass_candidates(
 
 - top_n:
 
-  Maximum number of compound candidates kept per neutral mass.
+  Maximum number of compound candidates kept per neutral mass. Use
+  `NULL` to retain all candidates within `ppm_tol`.
 
 - quiet:
 

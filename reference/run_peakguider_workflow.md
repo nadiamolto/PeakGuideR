@@ -148,7 +148,8 @@ run_peakguider_workflow(
 
 - top_n:
 
-  Maximum number of compound candidates per neutral mass.
+  Maximum number of compound candidates per neutral mass. Use `NULL` to
+  retain all candidates within `candidate_ppm_tol`.
 
 - quiet:
 
