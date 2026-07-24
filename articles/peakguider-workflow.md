@@ -737,9 +737,24 @@ Useful columns include:
   weighted average rather than penalising the candidate.
 - `priority_score`: weighted evidence score in the range 0 to 1, used to
   rank candidates within a `neutral_mass_id`.
-- `confidence_class`: a categorical summary of the evidence combination
-  (for example `"identity_confirmed_adduct_recovered"` or
-  `"broad_db_only_mass_only"`).
+- `confidence_class`: a categorical summary of the evidence combination,
+  in priority order:
+  - `"cross_db_linked_adduct_recovered"`: `source == "both"` (a strong
+    cross-database identifier link between the broad-database and
+    standard-library candidate) and `standard_adduct_recovery_score`
+    reaches `recovery_threshold`. This reflects a cross-database
+    identifier link plus recovered adduct evidence, not an analytical
+    confirmation of the compound in the sample.
+  - `"cross_db_linked_partial_recovery"`: `source == "both"`, but that
+    recovery threshold is not met.
+  - `"standards_only"`: `source == "standards_only"`.
+  - `"broad_db_only_multi_evidence"`: `source == "broad_db_only"` and at
+    least two of `is_c13_m0`, `has_eips`,
+    `adduct_spatial_score >= adduct_min_score` hold.
+  - `"broad_db_only_single_evidence"`: `source == "broad_db_only"` and
+    exactly one of those three signals holds.
+  - `"broad_db_only_mass_only"`: `source == "broad_db_only"` and none of
+    those three signals hold.
 - `ambiguous_isomeric`: `TRUE` when the top two candidates for the same
   `neutral_mass_id` have priority scores closer than `ambiguity_gap`
   (default `0.05`), signalling that isomers cannot be confidently

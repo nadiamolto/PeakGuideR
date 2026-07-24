@@ -161,7 +161,7 @@ Use <code>NULL</code> to retain all candidates within <code>ppm_tol</code>.</p><
 
 <dt id="arg-recovery-threshold">recovery_threshold<a class="anchor" aria-label="anchor" href="#arg-recovery-threshold"></a></dt>
 <dd><p>Minimum <code>standard_adduct_recovery_score</code> (<code>NA</code>
-treated as <code>0</code>) required for <code>confidence_class = "identity_confirmed_adduct_recovered"</code> when <code>source == "both"</code>.</p></dd>
+treated as <code>0</code>) required for <code>confidence_class = "cross_db_linked_adduct_recovered"</code> when <code>source == "both"</code>.</p></dd>
 
 
 <dt id="arg-adduct-min-score">adduct_min_score<a class="anchor" aria-label="anchor" href="#arg-adduct-min-score"></a></dt>
@@ -197,7 +197,24 @@ candidate identity, including <code>neutral_mass_id</code>,
 <code>eips_evidence_score</code>, <code>standard_adduct_recovery_score</code>,
 <code>family_coherence_score</code>, <code>priority_score</code>, <code>confidence_class</code> and
 <code>ambiguous_isomeric</code>.</p>
-    </div>
+<p><code>confidence_class</code> summarizes the evidence combination behind each
+candidate into one of six priority-ordered levels:</p><ul><li><p><code>"cross_db_linked_adduct_recovered"</code>: <code>source == "both"</code> (the
+broad-database and standard-library identity were linked through a
+strong cross-database identifier) and <code>standard_adduct_recovery_score</code>
+(<code>NA</code> treated as <code>0</code>) is at least <code>recovery_threshold</code>. This reflects a
+cross-database identifier link plus recovered adduct evidence, not an
+analytical confirmation of the compound in the sample.</p></li>
+<li><p><code>"cross_db_linked_partial_recovery"</code>: <code>source == "both"</code>, but the
+<code>recovery_threshold</code> above is not met.</p></li>
+<li><p><code>"standards_only"</code>: <code>source == "standards_only"</code>.</p></li>
+<li><p><code>"broad_db_only_multi_evidence"</code>: <code>source == "broad_db_only"</code> and
+at least two of <code>is_c13_m0</code>, <code>has_eips</code>,
+<code>adduct_spatial_score &gt;= adduct_min_score</code> (<code>NA</code> treated as <code>0</code>) hold.</p></li>
+<li><p><code>"broad_db_only_single_evidence"</code>: <code>source == "broad_db_only"</code> and
+exactly one of those three signals holds.</p></li>
+<li><p><code>"broad_db_only_mass_only"</code>: <code>source == "broad_db_only"</code> and none
+of those three signals hold.</p></li>
+</ul></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

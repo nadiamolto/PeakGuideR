@@ -439,8 +439,7 @@
 </tr>
 <tr>
 <td><code>confidence_class</code></td>
-<td>Categorical summary of the evidence combination, e.g. <code>"identity_confirmed_adduct_recovered"</code> or <code>"broad_db_only_mass_only"</code>
-</td>
+<td>Categorical summary of the evidence combination, in priority order: <code>"cross_db_linked_adduct_recovered"</code> and <code>"cross_db_linked_partial_recovery"</code> (<code>source == "both"</code>, a cross-database identifier link, split by whether standard-adduct recovery reaches <code>recovery_threshold</code>), <code>"standards_only"</code>, then <code>"broad_db_only_multi_evidence"</code>, <code>"broad_db_only_single_evidence"</code> or <code>"broad_db_only_mass_only"</code> (<code>source == "broad_db_only"</code>, split by how many of <code>is_c13_m0</code>, <code>has_eips</code> and <code>adduct_spatial_score &gt;= adduct_min_score</code> hold)</td>
 </tr>
 <tr>
 <td><code>ambiguous_isomeric</code></td>

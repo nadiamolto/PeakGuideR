@@ -28,7 +28,8 @@ match_standards_by_mass(
   standards_db,
   ion_mode = c("pos", "neg"),
   matrix = NULL,
-  ppm_tol = 5
+  ppm_tol = 5,
+  quiet = FALSE
 )
 ```
 
@@ -50,13 +51,24 @@ match_standards_by_mass(
 
 - matrix:
 
-  Optional matrix name. When supplied and `standards_db` contains a
-  `matrix` column, only rows whose `matrix` value contains `matrix`
-  (case-insensitive) are kept. Use `NULL` to skip matrix filtering.
+  Matrix name. `standards_db` is matrix-specific (the bundled library
+  only covers HCCA/DEA), so a match against it is only meaningful when
+  the caller's matrix is known. When supplied and `standards_db`
+  contains a `matrix` column, only rows whose `matrix` value contains
+  `matrix` (case-insensitive) are kept. Use `NULL` to skip
+  standard-adduct library matching entirely (no rows are returned and
+  `standards_db` is not consulted), rather than comparing against every
+  matrix indiscriminately.
 
 - ppm_tol:
 
   PPM tolerance for neutral-mass matching.
+
+- quiet:
+
+  Logical. If `FALSE` (the default), prints a message when
+  `matrix = NULL` explaining that standard-adduct library matching was
+  skipped.
 
 ## Value
 

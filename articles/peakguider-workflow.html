@@ -917,9 +917,38 @@ to 1, used to rank candidates within a
 <code>neutral_mass_id</code>.</li>
 <li>
 <code>confidence_class</code>: a categorical summary of the evidence
-combination (for example
-<code>"identity_confirmed_adduct_recovered"</code> or
-<code>"broad_db_only_mass_only"</code>).</li>
+combination, in priority order:
+<ul>
+<li>
+<code>"cross_db_linked_adduct_recovered"</code>:
+<code>source == "both"</code> (a strong cross-database identifier link
+between the broad-database and standard-library candidate) and
+<code>standard_adduct_recovery_score</code> reaches
+<code>recovery_threshold</code>. This reflects a cross-database
+identifier link plus recovered adduct evidence, not an analytical
+confirmation of the compound in the sample.</li>
+<li>
+<code>"cross_db_linked_partial_recovery"</code>:
+<code>source == "both"</code>, but that recovery threshold is not
+met.</li>
+<li>
+<code>"standards_only"</code>:
+<code>source == "standards_only"</code>.</li>
+<li>
+<code>"broad_db_only_multi_evidence"</code>:
+<code>source == "broad_db_only"</code> and at least two of
+<code>is_c13_m0</code>, <code>has_eips</code>,
+<code>adduct_spatial_score &gt;= adduct_min_score</code> hold.</li>
+<li>
+<code>"broad_db_only_single_evidence"</code>:
+<code>source == "broad_db_only"</code> and exactly one of those three
+signals holds.</li>
+<li>
+<code>"broad_db_only_mass_only"</code>:
+<code>source == "broad_db_only"</code> and none of those three signals
+hold.</li>
+</ul>
+</li>
 <li>
 <code>ambiguous_isomeric</code>: <code>TRUE</code> when the top two
 candidates for the same <code>neutral_mass_id</code> have priority

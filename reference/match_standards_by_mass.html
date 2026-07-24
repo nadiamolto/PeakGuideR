@@ -91,7 +91,8 @@ same neutral mass, they are kept as separate rows rather than merged.</p>
 <span>  <span class="va">standards_db</span>,</span>
 <span>  ion_mode <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"pos"</span>, <span class="st">"neg"</span><span class="op">)</span>,</span>
 <span>  matrix <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  ppm_tol <span class="op">=</span> <span class="fl">5</span></span>
+<span>  ppm_tol <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -114,14 +115,23 @@ same neutral mass, they are kept as separate rows rather than merged.</p>
 
 
 <dt id="arg-matrix">matrix<a class="anchor" aria-label="anchor" href="#arg-matrix"></a></dt>
-<dd><p>Optional matrix name. When supplied and <code>standards_db</code>
+<dd><p>Matrix name. <code>standards_db</code> is matrix-specific (the bundled
+library only covers HCCA/DEA), so a match against it is only meaningful
+when the caller's matrix is known. When supplied and <code>standards_db</code>
 contains a <code>matrix</code> column, only rows whose <code>matrix</code> value contains
-<code>matrix</code> (case-insensitive) are kept. Use <code>NULL</code> to skip matrix
-filtering.</p></dd>
+<code>matrix</code> (case-insensitive) are kept. Use <code>NULL</code> to skip standard-adduct
+library matching entirely (no rows are returned and <code>standards_db</code> is
+not consulted), rather than comparing against every matrix indiscriminately.</p></dd>
 
 
 <dt id="arg-ppm-tol">ppm_tol<a class="anchor" aria-label="anchor" href="#arg-ppm-tol"></a></dt>
 <dd><p>PPM tolerance for neutral-mass matching.</p></dd>
+
+
+<dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
+<dd><p>Logical. If <code>FALSE</code> (the default), prints a message when
+<code>matrix = NULL</code> explaining that standard-adduct library matching was
+skipped.</p></dd>
 
 </dl></div>
     <div class="section level2">
