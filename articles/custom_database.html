@@ -251,6 +251,27 @@ or <code>[M+K]+</code>.</td>
 the database content and identifiers are appropriate for their analysis
 and comply with the licenses of the original data sources.</p>
 </div>
+<div class="section level3">
+<h3 id="identity-resolution-between-compound_db-and-standards_db">Identity resolution between <code>compound_db</code> and
+<code>standards_db</code><a class="anchor" aria-label="anchor" href="#identity-resolution-between-compound_db-and-standards_db"></a>
+</h3>
+<p>PeakGuideR links <code>compound_db</code> and
+<code>standards_db</code> candidates through a hierarchy of identifiers
+(InChIKey, then InChI, then SMILES, then a shared
+<code>HMDB</code>/<code>ChEBI</code> id), stopping at the first level
+that matches; see <code><a href="../reference/resolve_cross_source_identity.html">resolve_cross_source_identity()</a></code>. A match
+on <code>MOLECULAR_FORMULA</code> / <code>MolecularFormula</code> alone
+is <strong>never</strong> treated as identity, since different compounds
+(for example structural isomers) commonly share a molecular formula.
+Custom databases that only provide a molecular formula will therefore
+never be fused into a single <code>"both"</code> candidate; they are
+instead kept as separate rows and cross-referenced through
+<code>possible_link_formula_only</code> for manual review. To get fused
+<code>"both"</code> candidates, include
+<code>StdInChIKey</code>/<code>InCHIKey</code> (preferred),
+<code>StdInChI</code>, or <code>SMILES</code> in the custom
+database.</p>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

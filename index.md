@@ -79,24 +79,8 @@ res <- run_peakguider_workflow(
 ### From a Cardinal MSI object
 
 ``` r
-res <-# PeakGuideR
 
-<!-- badges: start -->
-<!-- badges: end -->
-
-<img src="man/figures/PeakGuideR_logo.png"
-     align="right"
-     width="360"
-     alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"/>
-
----
-
-**PeakGuideR** is an R package for evidence-based annotation support in MALDI-MSI metabolomics data.
-
-PeakGuideR transforms spatial metabolomics peak data into evidence-supported annotation maps. By combining isotope morphology, carbon isotope-ratio support (CIR), elemental isotope-pattern support (EIPS), adduct-edge detection, network-based adduct-family grouping, neutral-mass inference and database matching, the package helps reveal which peaks are connected, which features may belong to the same molecular family and which candidates are best supported by the available evidence.
-
-PeakGuideR does **not** provide definitive compound identification. Its goal is to make putative annotation evidence more transparent, interpretable and easier to prioritize before downstream validation.
- run_peakguider_workflow(
+res <- run_peakguider_workflow(
   pkm = MSImagingExperimentObject,
   ion_mode = "pos",
   matrix = "HCCA"
@@ -122,6 +106,7 @@ names(res)
 |----|----|
 | `res$feature_summary` | One row per m/z feature, summarizing isotope, EIPS and adduct-family evidence |
 | `res$neutral_mass_candidates` | One row per inferred neutral mass and compound candidate |
+| `res$candidate_annotations` | Long-format table with one row per neutral mass, feature(s) and candidate identity (family- and single-adduct-derived), including resolved compound/standard identity and a weighted priority score |
 | `res$relation_table` | Pairwise relationships between features |
 | `res$adduct_families` | Inferred adduct families and neutral masses |
 | `res$morph_results` | Isotope morphology results |
@@ -234,6 +219,53 @@ res$neutral_mass_candidates |>
 
 ------------------------------------------------------------------------
 
+### Candidate annotations
+
+`candidate_annotations` is the full long-format candidate table
+underlying `neutral_mass_candidates`. It has one row per inferred
+neutral mass, feature(s) and candidate identity, combining evidence from
+adduct families and from single, unassigned features evaluated
+individually against every compatible adduct (`hypothesis_origin`).
+Compound and standard-adduct identity is resolved through a hierarchy of
+identifiers (InChIKey, then InChI, then SMILES, then a shared HMDB/ChEBI
+id); a shared molecular formula alone never fuses two different
+candidates.
+
+``` r
+
+res$candidate_annotations |>
+  dplyr::select(
+    neutral_mass_id,
+    feature_idx,
+    inferred_adduct,
+    hypothesis_origin,
+    source,
+    identity_match_type,
+    broad_db_name,
+    standard_db_name,
+    priority_score,
+    confidence_class,
+    ambiguous_isomeric
+  ) |>
+  dplyr::filter(!is.na(priority_score)) |>
+  dplyr::arrange(dplyr::desc(priority_score)) |>
+  head()
+```
+
+Useful columns include:
+
+| Column | Description |
+|----|----|
+| `hypothesis_origin` | Whether the candidate comes from an adduct family or a single-adduct hypothesis |
+| `source` | `"both"` (compound and standard-library identity fused through a strong identifier), `"broad_db_only"` or `"standards_only"` |
+| `identity_match_type` | Identifier level that produced a `"both"` fusion (`inchikey`, `inchi`, `smiles` or `shared_id`); bookkeeping only, not an evidence score |
+| `mass_error_score`, `adduct_spatial_score`, `isotope_evidence_score`, `eips_evidence_score`, `standard_adduct_recovery_score`, `family_coherence_score` | Individual evidence components combined into `priority_score`. A component that does not apply (for example no standard-library compound within tolerance) is `NA` and is excluded from the weighted average, never treated as `0` |
+| `priority_score` | Weighted evidence score (0 to 1) used to rank candidates within a `neutral_mass_id` |
+| `confidence_class` | Categorical summary of the evidence combination, e.g. `"identity_confirmed_adduct_recovered"` or `"broad_db_only_mass_only"` |
+| `ambiguous_isomeric` | `TRUE` when the top two candidates for the same `neutral_mass_id` have priority scores closer than the ambiguity gap (default `0.05`) |
+
+------------------------------------------------------------------------
+
 ## Databases
 
 PeakGuideR includes small example databases for testing and
@@ -340,6 +372,7 @@ tables and final summary tables.
 | `relation_table` | Unified feature-feature relationship table. | Trace why features are connected or flagged. |
 | `feature_summary` | One row per detected m/z feature. | Start here for feature-level interpretation. |
 | `neutral_mass_candidates` | Inferred neutral masses matched to candidate compounds. | Prioritise putative annotations for validation. |
+| `candidate_annotations` | Full long-format candidate table (family- and single-adduct-derived), with resolved compound/standard identity, evidence scores and a weighted priority score. | Full traceability and ranking of every candidate annotation. |
 
 ------------------------------------------------------------------------
 

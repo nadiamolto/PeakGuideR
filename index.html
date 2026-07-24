@@ -137,28 +137,12 @@
 <div class="section level3">
 <h3 id="from-a-cardinal-msi-object">From a Cardinal MSI object<a class="anchor" aria-label="anchor" href="#from-a-cardinal-msi-object"></a>
 </h3>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>res <span class="ot">&lt;-</span><span class="co"># PeakGuideR</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="er">&lt;</span><span class="sc">!--</span> badges<span class="sc">:</span> start <span class="sc">-</span><span class="ot">-&gt;</span></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="er">&lt;</span><span class="sc">!--</span> badges<span class="sc">:</span> end <span class="sc">-</span><span class="ot">-&gt;</span></span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a></span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="er">&lt;</span>img src<span class="ot">=</span><span class="st">"man/figures/PeakGuideR_logo.png"</span></span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>     align<span class="ot">=</span><span class="st">"right"</span></span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>     width<span class="ot">=</span><span class="st">"360"</span></span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>     alt<span class="ot">=</span><span class="st">"PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"</span><span class="sc">/</span><span class="er">&gt;</span></span>
-<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="sc">---</span></span>
-<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a></span>
-<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="er">**</span>PeakGuideR<span class="sc">**</span> is an R package <span class="cf">for</span> evidence<span class="sc">-</span>based annotation support <span class="cf">in</span> MALDI<span class="sc">-</span>MSI metabolomics data.</span>
-<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a></span>
-<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>PeakGuideR transforms spatial metabolomics peak data into evidence<span class="sc">-</span>supported annotation maps. By combining isotope morphology, carbon isotope<span class="sc">-</span>ratio <span class="fu">support</span> (CIR), elemental isotope<span class="sc">-</span>pattern <span class="fu">support</span> (EIPS), adduct<span class="sc">-</span>edge detection, network<span class="sc">-</span>based adduct<span class="sc">-</span>family grouping, neutral<span class="sc">-</span>mass inference and database matching, the package helps reveal which peaks are connected, which features may belong to the same molecular family and which candidates are best supported by the available evidence.</span>
-<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a></span>
-<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>PeakGuideR does <span class="sc">**</span>not<span class="sc">**</span> provide definitive compound identification. Its goal is to make putative annotation evidence more transparent, interpretable and easier to prioritize before downstream validation.</span>
-<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a> <span class="fu">run_peakguider_workflow</span>(</span>
-<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>  <span class="at">pkm =</span> MSImagingExperimentObject,</span>
-<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>  <span class="at">ion_mode =</span> <span class="st">"pos"</span>,</span>
-<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>  <span class="at">matrix =</span> <span class="st">"HCCA"</span></span>
-<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_peakguider_workflow.html">run_peakguider_workflow</a></span><span class="op">(</span></span>
+<span>  pkm <span class="op">=</span> <span class="va">MSImagingExperimentObject</span>,</span>
+<span>  ion_mode <span class="op">=</span> <span class="st">"pos"</span>,</span>
+<span>  matrix <span class="op">=</span> <span class="st">"HCCA"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 <p>Internally, Cardinal objects are converted to peak-matrix format using <code><a href="reference/cardinal_to_peakmatrix.html">cardinal_to_peakmatrix()</a></code>.</p>
 <p>The workflow returns a <code>peakguider_workflow</code> object:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -187,6 +171,10 @@
 <tr>
 <td><code>res$neutral_mass_candidates</code></td>
 <td>One row per inferred neutral mass and compound candidate</td>
+</tr>
+<tr>
+<td><code>res$candidate_annotations</code></td>
+<td>Long-format table with one row per neutral mass, feature(s) and candidate identity (family- and single-adduct-derived), including resolved compound/standard identity and a weighted priority score</td>
 </tr>
 <tr>
 <td><code>res$relation_table</code></td>
@@ -390,6 +378,79 @@
 <span>  <span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
+<div class="section level3">
+<h3 id="candidate-annotations">Candidate annotations<a class="anchor" aria-label="anchor" href="#candidate-annotations"></a>
+</h3>
+<p><code>candidate_annotations</code> is the full long-format candidate table underlying <code>neutral_mass_candidates</code>. It has one row per inferred neutral mass, feature(s) and candidate identity, combining evidence from adduct families and from single, unassigned features evaluated individually against every compatible adduct (<code>hypothesis_origin</code>). Compound and standard-adduct identity is resolved through a hierarchy of identifiers (InChIKey, then InChI, then SMILES, then a shared HMDB/ChEBI id); a shared molecular formula alone never fuses two different candidates.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">candidate_annotations</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
+<span>    <span class="va">neutral_mass_id</span>,</span>
+<span>    <span class="va">feature_idx</span>,</span>
+<span>    <span class="va">inferred_adduct</span>,</span>
+<span>    <span class="va">hypothesis_origin</span>,</span>
+<span>    <span class="va">source</span>,</span>
+<span>    <span class="va">identity_match_type</span>,</span>
+<span>    <span class="va">broad_db_name</span>,</span>
+<span>    <span class="va">standard_db_name</span>,</span>
+<span>    <span class="va">priority_score</span>,</span>
+<span>    <span class="va">confidence_class</span>,</span>
+<span>    <span class="va">ambiguous_isomeric</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">priority_score</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/desc.html" class="external-link">desc</a></span><span class="op">(</span><span class="va">priority_score</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Useful columns include:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>Column</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>hypothesis_origin</code></td>
+<td>Whether the candidate comes from an adduct family or a single-adduct hypothesis</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>
+<code>"both"</code> (compound and standard-library identity fused through a strong identifier), <code>"broad_db_only"</code> or <code>"standards_only"</code>
+</td>
+</tr>
+<tr>
+<td><code>identity_match_type</code></td>
+<td>Identifier level that produced a <code>"both"</code> fusion (<code>inchikey</code>, <code>inchi</code>, <code>smiles</code> or <code>shared_id</code>); bookkeeping only, not an evidence score</td>
+</tr>
+<tr>
+<td>
+<code>mass_error_score</code>, <code>adduct_spatial_score</code>, <code>isotope_evidence_score</code>, <code>eips_evidence_score</code>, <code>standard_adduct_recovery_score</code>, <code>family_coherence_score</code>
+</td>
+<td>Individual evidence components combined into <code>priority_score</code>. A component that does not apply (for example no standard-library compound within tolerance) is <code>NA</code> and is excluded from the weighted average, never treated as <code>0</code>
+</td>
+</tr>
+<tr>
+<td><code>priority_score</code></td>
+<td>Weighted evidence score (0 to 1) used to rank candidates within a <code>neutral_mass_id</code>
+</td>
+</tr>
+<tr>
+<td><code>confidence_class</code></td>
+<td>Categorical summary of the evidence combination, e.g. <code>"identity_confirmed_adduct_recovered"</code> or <code>"broad_db_only_mass_only"</code>
+</td>
+</tr>
+<tr>
+<td><code>ambiguous_isomeric</code></td>
+<td>
+<code>TRUE</code> when the top two candidates for the same <code>neutral_mass_id</code> have priority scores closer than the ambiguity gap (default <code>0.05</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</div>
 </div>
 <div class="section level2">
 <h2 id="databases">Databases<a class="anchor" aria-label="anchor" href="#databases"></a>
@@ -444,11 +505,11 @@
 <h3 id="loading-full-databases-manually">Loading full databases manually<a class="anchor" aria-label="anchor" href="#loading-full-databases-manually"></a>
 </h3>
 <p>After downloading the files from Zenodo, load them in R:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">compound_db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"path/to/compound_mass_database.rds"</span><span class="op">)</span></span>
 <span><span class="va">standards_db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"path/to/standards_adduct_library.rds"</span><span class="op">)</span></span></code></pre></div>
 <p>Then pass them to the workflow:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_peakguider_workflow.html">run_peakguider_workflow</a></span><span class="op">(</span></span>
 <span>  pkm <span class="op">=</span> <span class="va">pkm</span>,</span>
 <span>  ion_mode <span class="op">=</span> <span class="st">"pos"</span>,</span>
@@ -457,7 +518,7 @@
 <span>  standards_db <span class="op">=</span> <span class="va">standards_db</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Alternatively, you can load directly the databases using:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dbs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/load_peakguider_databases.html">load_peakguider_databases</a></span><span class="op">(</span></span>
 <span>  compound_db_path <span class="op">=</span> <span class="st">"path/to/compound_mass_database.rds"</span>,</span>
 <span>  standards_db_path <span class="op">=</span> <span class="st">"path/to/standards_adduct_library.rds"</span></span>
@@ -540,6 +601,11 @@ Standard-adduct support should be interpreted as matrix- and preparation-specifi
 <td>Inferred neutral masses matched to candidate compounds.</td>
 <td>Prioritise putative annotations for validation.</td>
 </tr>
+<tr>
+<td><code>candidate_annotations</code></td>
+<td>Full long-format candidate table (family- and single-adduct-derived), with resolved compound/standard identity, evidence scores and a weighted priority score.</td>
+<td>Full traceability and ranking of every candidate annotation.</td>
+</tr>
 </tbody>
 </table>
 <hr>
@@ -548,10 +614,10 @@ Standard-adduct support should be interpreted as matrix- and preparation-specifi
 <h2 id="interactive-peak-network">Interactive peak network<a class="anchor" aria-label="anchor" href="#interactive-peak-network"></a>
 </h2>
 <p>PeakGuideR can visualise feature relationships as an interactive network:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span></code></pre></div>
 <p>Nodes represent detected m/z features and edges represent evidence-supported relationships, including isotope, elemental isotope-pattern and adduct-family evidence. When adduct-family information is available, the network can be restricted to a specific family:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span><span class="va">res</span>, family_id <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p>The network is exploratory: connected features represent evidence-supported relationships, not definitive compound identifications.</p>
 <hr>

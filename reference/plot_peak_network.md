@@ -71,3 +71,20 @@ plot_peak_network(
 ## Value
 
 A `visNetwork` htmlwidget.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+data(example_pkm, package = "PeakGuideR")
+
+res <- run_peakguider_workflow(
+  pkm = example_pkm,
+  ion_mode = "pos",
+  matrix = "HCCA",
+  quiet = TRUE
+)
+
+plot_peak_network(res, min_score = 0.3)
+} # }
+```

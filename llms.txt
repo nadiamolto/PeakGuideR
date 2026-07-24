@@ -79,24 +79,8 @@ res <- run_peakguider_workflow(
 ### From a Cardinal MSI object
 
 ``` r
-res <-# PeakGuideR
 
-<!-- badges: start -->
-<!-- badges: end -->
-
-<img src="man/figures/PeakGuideR_logo.png"
-     align="right"
-     width="360"
-     alt="PeakGuideR logo showing stylized MSI peaks and spatial metabolomics annotation"/>
-
----
-
-**PeakGuideR** is an R package for evidence-based annotation support in MALDI-MSI metabolomics data.
-
-PeakGuideR transforms spatial metabolomics peak data into evidence-supported annotation maps. By combining isotope morphology, carbon isotope-ratio support (CIR), elemental isotope-pattern support (EIPS), adduct-edge detection, network-based adduct-family grouping, neutral-mass inference and database matching, the package helps reveal which peaks are connected, which features may belong to the same molecular family and which candidates are best supported by the available evidence.
-
-PeakGuideR does **not** provide definitive compound identification. Its goal is to make putative annotation evidence more transparent, interpretable and easier to prioritize before downstream validation.
- run_peakguider_workflow(
+res <- run_peakguider_workflow(
   pkm = MSImagingExperimentObject,
   ion_mode = "pos",
   matrix = "HCCA"
@@ -122,6 +106,7 @@ names(res)
 |----|----|
 | `res$feature_summary` | One row per m/z feature, summarizing isotope, EIPS and adduct-family evidence |
 | `res$neutral_mass_candidates` | One row per inferred neutral mass and compound candidate |
+| `res$candidate_annotations` | Long-format table with one row per neutral mass, feature(s) and candidate identity (family- and single-adduct-derived), including resolved compound/standard identity and a weighted priority score |
 | `res$relation_table` | Pairwise relationships between features |
 | `res$adduct_families` | Inferred adduct families and neutral masses |
 | `res$morph_results` | Isotope morphology results |
@@ -234,6 +219,53 @@ res$neutral_mass_candidates |>
 
 ------------------------------------------------------------------------
 
+### Candidate annotations
+
+`candidate_annotations` is the full long-format candidate table
+underlying `neutral_mass_candidates`. It has one row per inferred
+neutral mass, feature(s) and candidate identity, combining evidence from
+adduct families and from single, unassigned features evaluated
+individually against every compatible adduct (`hypothesis_origin`).
+Compound and standard-adduct identity is resolved through a hierarchy of
+identifiers (InChIKey, then InChI, then SMILES, then a shared HMDB/ChEBI
+id); a shared molecular formula alone never fuses two different
+candidates.
+
+``` r
+
+res$candidate_annotations |>
+  dplyr::select(
+    neutral_mass_id,
+    feature_idx,
+    inferred_adduct,
+    hypothesis_origin,
+    source,
+    identity_match_type,
+    broad_db_name,
+    standard_db_name,
+    priority_score,
+    confidence_class,
+    ambiguous_isomeric
+  ) |>
+  dplyr::filter(!is.na(priority_score)) |>
+  dplyr::arrange(dplyr::desc(priority_score)) |>
+  head()
+```
+
+Useful columns include:
+
+| Column | Description |
+|----|----|
+| `hypothesis_origin` | Whether the candidate comes from an adduct family or a single-adduct hypothesis |
+| `source` | `"both"` (compound and standard-library identity fused through a strong identifier), `"broad_db_only"` or `"standards_only"` |
+| `identity_match_type` | Identifier level that produced a `"both"` fusion (`inchikey`, `inchi`, `smiles` or `shared_id`); bookkeeping only, not an evidence score |
+| `mass_error_score`, `adduct_spatial_score`, `isotope_evidence_score`, `eips_evidence_score`, `standard_adduct_recovery_score`, `family_coherence_score` | Individual evidence components combined into `priority_score`. A component that does not apply (for example no standard-library compound within tolerance) is `NA` and is excluded from the weighted average, never treated as `0` |
+| `priority_score` | Weighted evidence score (0 to 1) used to rank candidates within a `neutral_mass_id` |
+| `confidence_class` | Categorical summary of the evidence combination, e.g. `"identity_confirmed_adduct_recovered"` or `"broad_db_only_mass_only"` |
+| `ambiguous_isomeric` | `TRUE` when the top two candidates for the same `neutral_mass_id` have priority scores closer than the ambiguity gap (default `0.05`) |
+
+------------------------------------------------------------------------
+
 ## Databases
 
 PeakGuideR includes small example databases for testing and
@@ -340,6 +372,7 @@ tables and final summary tables.
 | `relation_table` | Unified feature-feature relationship table. | Trace why features are connected or flagged. |
 | `feature_summary` | One row per detected m/z feature. | Start here for feature-level interpretation. |
 | `neutral_mass_candidates` | Inferred neutral masses matched to candidate compounds. | Prioritise putative annotations for validation. |
+| `candidate_annotations` | Full long-format candidate table (family- and single-adduct-derived), with resolved compound/standard identity, evidence scores and a weighted priority score. | Full traceability and ranking of every candidate annotation. |
 
 ------------------------------------------------------------------------
 
@@ -417,23 +450,33 @@ Zenodo database record: `https://doi.org/10.5281/zenodo.20705395`
 - [`adduct_families()`](https://nadiamolto.github.io/PeakGuideR/reference/adduct_families.md)
   : Build neutral-mass-based adduct families from pairwise adduct
   candidate edges
+- [`build_candidate_annotations()`](https://nadiamolto.github.io/PeakGuideR/reference/build_candidate_annotations.md)
+  : Build the unified long-format candidate annotation table
 - [`build_feature_summary()`](https://nadiamolto.github.io/PeakGuideR/reference/build_feature_summary.md)
   : Build feature-level summary from PeakGuideR relations
 - [`build_neutral_mass_candidates()`](https://nadiamolto.github.io/PeakGuideR/reference/build_neutral_mass_candidates.md)
   : Build neutral-mass candidate table
 - [`build_relation_table()`](https://nadiamolto.github.io/PeakGuideR/reference/build_relation_table.md)
   : Build a unified peak relation table
+- [`build_single_adduct_candidates()`](https://nadiamolto.github.io/PeakGuideR/reference/build_single_adduct_candidates.md)
+  : Build single-adduct candidate hypotheses for unassigned features
 - [`cardinal_to_peakmatrix()`](https://nadiamolto.github.io/PeakGuideR/reference/cardinal_to_peakmatrix.md)
   : Convert a Cardinal MSImagingExperiment object to a peak matrix
 - [`cir_score()`](https://nadiamolto.github.io/PeakGuideR/reference/cir_score.md)
   : CIR score \#' Validate C13 M+1 candidates using carbon isotope
   ratios
+- [`compute_priority_score()`](https://nadiamolto.github.io/PeakGuideR/reference/compute_priority_score.md)
+  : Compute a weighted candidate priority score
 - [`default_adducts()`](https://nadiamolto.github.io/PeakGuideR/reference/default_adducts.md)
   : Default adduct definitions
+- [`default_priority_weights()`](https://nadiamolto.github.io/PeakGuideR/reference/default_priority_weights.md)
+  : Default weights for the candidate priority score
 - [`eips_score()`](https://nadiamolto.github.io/PeakGuideR/reference/eips_score.md)
   : Score elemental isotope-pattern candidates
 - [`example_pkm`](https://nadiamolto.github.io/PeakGuideR/reference/example_pkm.md)
   : Example PeakGuideR peak matrix
+- [`inspect_database_coverage()`](https://nadiamolto.github.io/PeakGuideR/reference/inspect_database_coverage.md)
+  : Inspect identifier coverage of a compound mass database
 - [`iso_mass_deviation_score()`](https://nadiamolto.github.io/PeakGuideR/reference/iso_mass_deviation_score.md)
   : Mass deviation scoring for isotopic candidate pairs
 - [`iso_morphology_candidates()`](https://nadiamolto.github.io/PeakGuideR/reference/iso_morphology_candidates.md)
@@ -445,10 +488,18 @@ Zenodo database record: `https://doi.org/10.5281/zenodo.20705395`
   : Load external PeakGuideR databases
 - [`load_standards_adduct_library()`](https://nadiamolto.github.io/PeakGuideR/reference/load_standards_adduct_library.md)
   : Load the PeakGuideR standard adduct library
+- [`match_standards_by_mass()`](https://nadiamolto.github.io/PeakGuideR/reference/match_standards_by_mass.md)
+  : Match inferred neutral masses against the standard-adduct library by
+  mass
 - [`plot_peak_network()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_peak_network.md)
   : Plot a peak evidence network
 - [`print(`*`<peakguider_workflow>`*`)`](https://nadiamolto.github.io/PeakGuideR/reference/print.peakguider_workflow.md)
   : Print PeakGuideR workflow result
+- [`resolve_compound_identity()`](https://nadiamolto.github.io/PeakGuideR/reference/resolve_compound_identity.md)
+  : Resolve compound identity within a compound mass database
+- [`resolve_cross_source_identity()`](https://nadiamolto.github.io/PeakGuideR/reference/resolve_cross_source_identity.md)
+  : Resolve compound identity across a broad compound database and the
+  standard-adduct library
 - [`run_peakguider_workflow()`](https://nadiamolto.github.io/PeakGuideR/reference/run_peakguider_workflow.md)
   : Run the PeakGuideR annotation workflow
 

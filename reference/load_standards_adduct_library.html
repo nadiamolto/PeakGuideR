@@ -69,6 +69,27 @@ argument.</p>
     <p>A data.frame.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">standards_db</span> <span class="op">&lt;-</span> <span class="fu">load_standards_adduct_library</span><span class="op">(</span>quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">standards_db</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 22</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   COMPOUND_ID COMPOUND Master_List_NAME POLARITY matrix          matrix_compound</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> P1A5        CITRATE  CITRATE          neg      HCCA-DEA solid… alpha-cyano-4-…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> P1A5        CITRATE  CITRATE          neg      HCCA-DEA solid… alpha-cyano-4-…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> P1A5        CITRATE  CITRATE          neg      HCCA-DEA solid… alpha-cyano-4-…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> P1A5        CITRATE  CITRATE          neg      HCCA-DEA solid… alpha-cyano-4-…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> P1A5        CITRATE  CITRATE          neg      HCCA-DEA solid… alpha-cyano-4-…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> P1A5        CITRATE  CITRATE          pos      HCCA-DEA solid… alpha-cyano-4-…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 16 more variables: matrix_additive &lt;chr&gt;, deposition_method &lt;chr&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   adduct &lt;chr&gt;, mz_theo &lt;dbl&gt;, MOLECULAR_FORMULA &lt;chr&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   NEUTRAL_MONOISOTOPIC_MASS &lt;dbl&gt;, SOLVENT &lt;chr&gt;, HMDB_clean &lt;chr&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   CAS_ID &lt;chr&gt;, SMILES &lt;chr&gt;, KEGG_ID_CSID &lt;chr&gt;, METLIN_ID &lt;chr&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   PC_CID &lt;chr&gt;, PC_SID &lt;chr&gt;, ChEBI &lt;chr&gt;, InCHIKey &lt;chr&gt;</span></span>
+<span class="r-in"><span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

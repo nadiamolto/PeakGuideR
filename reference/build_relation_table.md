@@ -46,3 +46,28 @@ build_relation_table(
 ## Value
 
 A data.frame with one row per peak-to-peak relation.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+data(example_pkm, package = "PeakGuideR")
+
+morph_results <- iso_morphology_candidates(example_pkm, prefer_mode = "ppm")
+cir_results <- cir_score(morph_results, example_pkm)
+eips_results <- eips_score(
+  morph_results, example_pkm,
+  ion_mode = "pos", cir_df = cir_results, morph_df = morph_results
+)
+
+adduct_edges <- adduct_candidates(example_pkm, ion_mode = "pos")
+adduct_fam <- adduct_families(adduct_edges)
+
+relation_table <- build_relation_table(
+  cir_results = cir_results,
+  eips_results = eips_results,
+  adduct_fam = adduct_fam
+)
+head(relation_table)
+} # }
+```

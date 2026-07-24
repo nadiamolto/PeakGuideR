@@ -84,6 +84,7 @@ summarization and neutral-mass candidate matching.</p>
 <span>  neutral_cluster_ppm <span class="op">=</span> <span class="fl">5</span>,</span>
 <span>  candidate_ppm_tol <span class="op">=</span> <span class="fl">5</span>,</span>
 <span>  top_n <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  include_single_adduct <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -198,6 +199,14 @@ are clipped in adduct detection.</p></dd>
 Use <code>NULL</code> to retain all candidates within <code>candidate_ppm_tol</code>.</p></dd>
 
 
+<dt id="arg-include-single-adduct">include_single_adduct<a class="anchor" aria-label="anchor" href="#arg-include-single-adduct"></a></dt>
+<dd><p>Logical. If <code>TRUE</code> (the default),
+<code>candidate_annotations</code> also includes single-adduct hypotheses for
+features not assigned to any adduct family (see
+<code><a href="build_single_adduct_candidates.html">build_single_adduct_candidates()</a></code>). If <code>FALSE</code>, only family-derived
+candidates are included.</p></dd>
+
+
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
 <dd><p>Logical. If <code>FALSE</code>, prints progress messages.</p></dd>
 
@@ -207,6 +216,22 @@ Use <code>NULL</code> to retain all candidates within <code>candidate_ppm_tol</c
     <p>A list with all main PeakGuideR workflow outputs.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">example_pkm</span>, package <span class="op">=</span> <span class="st">"PeakGuideR"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">run_peakguider_workflow</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  pkm <span class="op">=</span> <span class="va">example_pkm</span>,</span></span>
+<span class="r-in"><span>  ion_mode <span class="op">=</span> <span class="st">"pos"</span>,</span></span>
+<span class="r-in"><span>  matrix <span class="op">=</span> <span class="st">"HCCA"</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">candidate_annotations</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

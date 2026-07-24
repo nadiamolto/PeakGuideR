@@ -171,3 +171,23 @@ If `return_debug = TRUE`, returns a list with:
 - `eips_validation`
 
 - `top_n_candidates`
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+data(example_pkm, package = "PeakGuideR")
+
+morph_results <- iso_morphology_candidates(example_pkm, prefer_mode = "ppm")
+cir_results <- cir_score(morph_results, example_pkm)
+
+eips_results <- eips_score(
+  result = morph_results,
+  pkm = example_pkm,
+  ion_mode = "pos",
+  cir_df = cir_results,
+  morph_df = morph_results
+)
+head(eips_results)
+} # }
+```

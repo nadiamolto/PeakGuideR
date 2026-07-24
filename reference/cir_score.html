@@ -108,6 +108,24 @@ C13 candidates. It does not assign definitive isotope annotations by itself.</p>
 <p>Filters C13_M1 candidates and validates against theoretical ratios.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">example_pkm</span>, package <span class="op">=</span> <span class="st">"PeakGuideR"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">morph_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="iso_morphology_candidates.html">iso_morphology_candidates</a></span><span class="op">(</span><span class="va">example_pkm</span>, prefer_mode <span class="op">=</span> <span class="st">"ppm"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">cir_results</span> <span class="op">&lt;-</span> <span class="fu">cir_score</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  result <span class="op">=</span> <span class="va">morph_results</span>,</span></span>
+<span class="r-in"><span>  pkm <span class="op">=</span> <span class="va">example_pkm</span>,</span></span>
+<span class="r-in"><span>  min_score_final <span class="op">=</span> <span class="fl">0.6</span>,</span></span>
+<span class="r-in"><span>  cir_rel_tol <span class="op">=</span> <span class="fl">0.3</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">cir_results</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

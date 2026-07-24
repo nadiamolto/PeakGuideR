@@ -36,6 +36,7 @@ run_peakguider_workflow(
   neutral_cluster_ppm = 5,
   candidate_ppm_tol = 5,
   top_n = 10L,
+  include_single_adduct = TRUE,
   quiet = FALSE
 )
 ```
@@ -151,6 +152,14 @@ run_peakguider_workflow(
   Maximum number of compound candidates per neutral mass. Use `NULL` to
   retain all candidates within `candidate_ppm_tol`.
 
+- include_single_adduct:
+
+  Logical. If `TRUE` (the default), `candidate_annotations` also
+  includes single-adduct hypotheses for features not assigned to any
+  adduct family (see
+  [`build_single_adduct_candidates()`](https://nadiamolto.github.io/PeakGuideR/reference/build_single_adduct_candidates.md)).
+  If `FALSE`, only family-derived candidates are included.
+
 - quiet:
 
   Logical. If `FALSE`, prints progress messages.
@@ -158,3 +167,20 @@ run_peakguider_workflow(
 ## Value
 
 A list with all main PeakGuideR workflow outputs.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+data(example_pkm, package = "PeakGuideR")
+
+res <- run_peakguider_workflow(
+  pkm = example_pkm,
+  ion_mode = "pos",
+  matrix = "HCCA"
+)
+
+names(res)
+head(res$candidate_annotations)
+} # }
+```
