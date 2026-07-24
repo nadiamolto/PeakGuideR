@@ -134,7 +134,7 @@ compute_priority_score <- function(scores, weights = default_priority_weights())
 #'   [default_priority_weights()].
 #' @param recovery_threshold Minimum `standard_adduct_recovery_score` (`NA`
 #'   treated as `0`) required for `confidence_class =
-#'   "identity_confirmed_adduct_recovered"` when `source == "both"`.
+#'   "cross_db_linked_adduct_recovered"` when `source == "both"`.
 #' @param adduct_min_score Minimum `adduct_spatial_score` (`NA` treated as
 #'   `0`) counted as multi-evidence support for `broad_db_only` candidates.
 #'   Reuses the same threshold as the `adduct_min_score` workflow parameter.
@@ -155,6 +155,27 @@ compute_priority_score <- function(scores, weights = default_priority_weights())
 #'   `eips_evidence_score`, `standard_adduct_recovery_score`,
 #'   `family_coherence_score`, `priority_score`, `confidence_class` and
 #'   `ambiguous_isomeric`.
+#'
+#' `confidence_class` summarizes the evidence combination behind each
+#' candidate into one of six priority-ordered levels:
+#' \itemize{
+#'   \item `"cross_db_linked_adduct_recovered"`: `source == "both"` (the
+#'     broad-database and standard-library identity were linked through a
+#'     strong cross-database identifier) and `standard_adduct_recovery_score`
+#'     (`NA` treated as `0`) is at least `recovery_threshold`. This reflects a
+#'     cross-database identifier link plus recovered adduct evidence, not an
+#'     analytical confirmation of the compound in the sample.
+#'   \item `"cross_db_linked_partial_recovery"`: `source == "both"`, but the
+#'     `recovery_threshold` above is not met.
+#'   \item `"standards_only"`: `source == "standards_only"`.
+#'   \item `"broad_db_only_multi_evidence"`: `source == "broad_db_only"` and
+#'     at least two of `is_c13_m0`, `has_eips`,
+#'     `adduct_spatial_score >= adduct_min_score` (`NA` treated as `0`) hold.
+#'   \item `"broad_db_only_single_evidence"`: `source == "broad_db_only"` and
+#'     exactly one of those three signals holds.
+#'   \item `"broad_db_only_mass_only"`: `source == "broad_db_only"` and none
+#'     of those three signals hold.
+#' }
 #'
 #' @examples
 #' \dontrun{
@@ -392,7 +413,7 @@ build_candidate_annotations <- function(
   if (use_standards && nrow(neutral_for_matching_fam) > 0) {
     standard_candidates_fam <- match_standards_by_mass(
       neutral_for_matching_fam, standards_db,
-      ion_mode = ion_mode, matrix = matrix, ppm_tol = ppm_tol
+      ion_mode = ion_mode, matrix = matrix, ppm_tol = ppm_tol, quiet = quiet
     )
   }
 
@@ -544,16 +565,20 @@ build_candidate_annotations <- function(
 
   combined <- combined |>
     dplyr::mutate(
+      .broad_evidence_count =
+        as.integer(is_c13_m0) + as.integer(has_eips) +
+        as.integer(dplyr::coalesce(adduct_spatial_score, 0) >= adduct_min_score),
       confidence_class = dplyr::case_when(
         is.na(source) ~ NA_character_,
         source == "both" &
           dplyr::coalesce(standard_adduct_recovery_score, 0) >= recovery_threshold ~
-          "identity_confirmed_adduct_recovered",
-        source == "both" ~ "identity_confirmed_partial_recovery",
+          "cross_db_linked_adduct_recovered",
+        source == "both" ~ "cross_db_linked_partial_recovery",
         source == "standards_only" ~ "standards_only",
-        source == "broad_db_only" &
-          (is_c13_m0 | has_eips | dplyr::coalesce(adduct_spatial_score, 0) >= adduct_min_score) ~
+        source == "broad_db_only" & .broad_evidence_count >= 2 ~
           "broad_db_only_multi_evidence",
+        source == "broad_db_only" & .broad_evidence_count == 1 ~
+          "broad_db_only_single_evidence",
         source == "broad_db_only" ~ "broad_db_only_mass_only",
         TRUE ~ NA_character_
       )

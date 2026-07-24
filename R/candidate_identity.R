@@ -113,11 +113,17 @@ compute_detected_adducts_map <- function(...) {
 #' @param standards_db Standard-adduct library data.frame. Must contain
 #'   `NEUTRAL_MONOISOTOPIC_MASS` and `POLARITY`.
 #' @param ion_mode `"pos"` or `"neg"`.
-#' @param matrix Optional matrix name. When supplied and `standards_db`
+#' @param matrix Matrix name. `standards_db` is matrix-specific (the bundled
+#'   library only covers HCCA/DEA), so a match against it is only meaningful
+#'   when the caller's matrix is known. When supplied and `standards_db`
 #'   contains a `matrix` column, only rows whose `matrix` value contains
-#'   `matrix` (case-insensitive) are kept. Use `NULL` to skip matrix
-#'   filtering.
+#'   `matrix` (case-insensitive) are kept. Use `NULL` to skip standard-adduct
+#'   library matching entirely (no rows are returned and `standards_db` is
+#'   not consulted), rather than comparing against every matrix indiscriminately.
 #' @param ppm_tol PPM tolerance for neutral-mass matching.
+#' @param quiet Logical. If `FALSE` (the default), prints a message when
+#'   `matrix = NULL` explaining that standard-adduct library matching was
+#'   skipped.
 #'
 #' @return A data.frame with one row per `neutral_mass_id` and standard
 #'   compound candidate, with columns `neutral_mass_id`, `candidate_source`
@@ -149,7 +155,8 @@ match_standards_by_mass <- function(
     standards_db,
     ion_mode = c("pos", "neg"),
     matrix = NULL,
-    ppm_tol = 5
+    ppm_tol = 5,
+    quiet = FALSE
 ) {
   ion_mode <- match.arg(ion_mode)
 
@@ -158,17 +165,6 @@ match_standards_by_mass <- function(
   if (!all(required_neutral_cols %in% names(neutral_masses))) {
     stop(
       "`neutral_masses` must contain `neutral_mass_id` and `neutral_mass_consensus`.",
-      call. = FALSE
-    )
-  }
-
-  stopifnot(is.data.frame(standards_db))
-  required_std_cols <- c("NEUTRAL_MONOISOTOPIC_MASS", "POLARITY")
-  missing_std_cols <- setdiff(required_std_cols, names(standards_db))
-  if (length(missing_std_cols) > 0) {
-    stop(
-      "`standards_db` is missing required columns: ",
-      paste(missing_std_cols, collapse = ", "),
       call. = FALSE
     )
   }
@@ -191,10 +187,28 @@ match_standards_by_mass <- function(
     )
   }
 
+  if (is.null(matrix)) {
+    if (!isTRUE(quiet)) {
+      message("No matrix specified: skipping standard-adduct library matching.")
+    }
+    return(empty_out())
+  }
+
+  stopifnot(is.data.frame(standards_db))
+  required_std_cols <- c("NEUTRAL_MONOISOTOPIC_MASS", "POLARITY")
+  missing_std_cols <- setdiff(required_std_cols, names(standards_db))
+  if (length(missing_std_cols) > 0) {
+    stop(
+      "`standards_db` is missing required columns: ",
+      paste(missing_std_cols, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
   std <- standards_db |>
     dplyr::filter(POLARITY == ion_mode)
 
-  if (!is.null(matrix) && "matrix" %in% names(std)) {
+  if ("matrix" %in% names(std)) {
     std <- std[grepl(matrix, std[["matrix"]], ignore.case = TRUE), , drop = FALSE]
   }
 

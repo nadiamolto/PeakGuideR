@@ -59,7 +59,7 @@ Use \code{NULL} to retain all candidates within \code{ppm_tol}.}
 \code{\link[=default_priority_weights]{default_priority_weights()}}.}
 
 \item{recovery_threshold}{Minimum \code{standard_adduct_recovery_score} (\code{NA}
-treated as \code{0}) required for \code{confidence_class = "identity_confirmed_adduct_recovered"} when \code{source == "both"}.}
+treated as \code{0}) required for \code{confidence_class = "cross_db_linked_adduct_recovered"} when \code{source == "both"}.}
 
 \item{adduct_min_score}{Minimum \code{adduct_spatial_score} (\code{NA} treated as
 \code{0}) counted as multi-evidence support for \code{broad_db_only} candidates.
@@ -85,6 +85,27 @@ candidate identity, including \code{neutral_mass_id},
 \code{eips_evidence_score}, \code{standard_adduct_recovery_score},
 \code{family_coherence_score}, \code{priority_score}, \code{confidence_class} and
 \code{ambiguous_isomeric}.
+
+\code{confidence_class} summarizes the evidence combination behind each
+candidate into one of six priority-ordered levels:
+\itemize{
+\item \code{"cross_db_linked_adduct_recovered"}: \code{source == "both"} (the
+broad-database and standard-library identity were linked through a
+strong cross-database identifier) and \code{standard_adduct_recovery_score}
+(\code{NA} treated as \code{0}) is at least \code{recovery_threshold}. This reflects a
+cross-database identifier link plus recovered adduct evidence, not an
+analytical confirmation of the compound in the sample.
+\item \code{"cross_db_linked_partial_recovery"}: \code{source == "both"}, but the
+\code{recovery_threshold} above is not met.
+\item \code{"standards_only"}: \code{source == "standards_only"}.
+\item \code{"broad_db_only_multi_evidence"}: \code{source == "broad_db_only"} and
+at least two of \code{is_c13_m0}, \code{has_eips},
+\code{adduct_spatial_score >= adduct_min_score} (\code{NA} treated as \code{0}) hold.
+\item \code{"broad_db_only_single_evidence"}: \code{source == "broad_db_only"} and
+exactly one of those three signals holds.
+\item \code{"broad_db_only_mass_only"}: \code{source == "broad_db_only"} and none
+of those three signals hold.
+}
 }
 \description{
 Builds one long candidate-annotation table combining adduct-family

@@ -1,6 +1,7 @@
 
 
 utils::globalVariables(c(
+  ".broad_evidence_count",
   ".completeness",
   ".fam_consensus",
   ".iso_consensus",

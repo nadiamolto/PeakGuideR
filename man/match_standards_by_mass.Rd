@@ -9,7 +9,8 @@ match_standards_by_mass(
   standards_db,
   ion_mode = c("pos", "neg"),
   matrix = NULL,
-  ppm_tol = 5
+  ppm_tol = 5,
+  quiet = FALSE
 )
 }
 \arguments{
@@ -21,12 +22,19 @@ match_standards_by_mass(
 
 \item{ion_mode}{\code{"pos"} or \code{"neg"}.}
 
-\item{matrix}{Optional matrix name. When supplied and \code{standards_db}
+\item{matrix}{Matrix name. \code{standards_db} is matrix-specific (the bundled
+library only covers HCCA/DEA), so a match against it is only meaningful
+when the caller's matrix is known. When supplied and \code{standards_db}
 contains a \code{matrix} column, only rows whose \code{matrix} value contains
-\code{matrix} (case-insensitive) are kept. Use \code{NULL} to skip matrix
-filtering.}
+\code{matrix} (case-insensitive) are kept. Use \code{NULL} to skip standard-adduct
+library matching entirely (no rows are returned and \code{standards_db} is
+not consulted), rather than comparing against every matrix indiscriminately.}
 
 \item{ppm_tol}{PPM tolerance for neutral-mass matching.}
+
+\item{quiet}{Logical. If \code{FALSE} (the default), prints a message when
+\code{matrix = NULL} explaining that standard-adduct library matching was
+skipped.}
 }
 \value{
 A data.frame with one row per \code{neutral_mass_id} and standard

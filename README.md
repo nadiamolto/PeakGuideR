@@ -232,7 +232,7 @@ Useful columns include:
 | `identity_match_type` | Identifier level that produced a `"both"` fusion (`inchikey`, `inchi`, `smiles` or `shared_id`); bookkeeping only, not an evidence score |
 | `mass_error_score`, `adduct_spatial_score`, `isotope_evidence_score`, `eips_evidence_score`, `standard_adduct_recovery_score`, `family_coherence_score` | Individual evidence components combined into `priority_score`. A component that does not apply (for example no standard-library compound within tolerance) is `NA` and is excluded from the weighted average, never treated as `0` |
 | `priority_score` | Weighted evidence score (0 to 1) used to rank candidates within a `neutral_mass_id` |
-| `confidence_class` | Categorical summary of the evidence combination, e.g. `"identity_confirmed_adduct_recovered"` or `"broad_db_only_mass_only"` |
+| `confidence_class` | Categorical summary of the evidence combination, in priority order: `"cross_db_linked_adduct_recovered"` and `"cross_db_linked_partial_recovery"` (`source == "both"`, a cross-database identifier link, split by whether standard-adduct recovery reaches `recovery_threshold`), `"standards_only"`, then `"broad_db_only_multi_evidence"`, `"broad_db_only_single_evidence"` or `"broad_db_only_mass_only"` (`source == "broad_db_only"`, split by how many of `is_c13_m0`, `has_eips` and `adduct_spatial_score >= adduct_min_score` hold) |
 | `ambiguous_isomeric` | `TRUE` when the top two candidates for the same `neutral_mass_id` have priority scores closer than the ambiguity gap (default `0.05`) |
 
 ---

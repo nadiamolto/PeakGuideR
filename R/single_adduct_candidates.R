@@ -387,7 +387,7 @@ build_single_adduct_candidates <- function(
 
     standard_candidates <- match_standards_by_mass(
       neutral_for_matching, standards_db,
-      ion_mode = ion_mode, matrix = matrix, ppm_tol = ppm_tol
+      ion_mode = ion_mode, matrix = matrix, ppm_tol = ppm_tol, quiet = quiet
     )
   }
 
