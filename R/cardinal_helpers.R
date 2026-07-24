@@ -40,6 +40,18 @@ is_cardinal_object <- function(x) {
 #'
 #' @return An object with rMSIprocPeakMatrix-like structure.
 #'
+#' @examples
+#' \dontrun{
+#' # `cardinal_msi_data` is a Cardinal MSImagingExperiment object.
+#' pkm <- cardinal_to_peakmatrix(cardinal_msi_data)
+#'
+#' res <- run_peakguider_workflow(
+#'   pkm = pkm,
+#'   ion_mode = "pos",
+#'   matrix = "HCCA"
+#' )
+#' }
+#'
 #' @export
 cardinal_to_peakmatrix <- function(
     x,

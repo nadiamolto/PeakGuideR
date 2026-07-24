@@ -29,6 +29,7 @@ run_peakguider_workflow(
   neutral_cluster_ppm = 5,
   candidate_ppm_tol = 5,
   top_n = 10L,
+  include_single_adduct = TRUE,
   quiet = FALSE
 )
 }
@@ -91,6 +92,12 @@ are clipped in adduct detection.}
 \item{top_n}{Maximum number of compound candidates per neutral mass.
 Use \code{NULL} to retain all candidates within \code{candidate_ppm_tol}.}
 
+\item{include_single_adduct}{Logical. If \code{TRUE} (the default),
+\code{candidate_annotations} also includes single-adduct hypotheses for
+features not assigned to any adduct family (see
+\code{build_single_adduct_candidates()}). If \code{FALSE}, only family-derived
+candidates are included.}
+
 \item{quiet}{Logical. If \code{FALSE}, prints progress messages.}
 }
 \value{
@@ -104,4 +111,18 @@ The workflow includes isotope morphology detection, carbon isotope-ratio
 validation, elemental isotope-pattern support, adduct candidate detection,
 adduct-family grouping, relation-table construction, feature-level
 summarization and neutral-mass candidate matching.
+}
+\examples{
+\dontrun{
+data(example_pkm, package = "PeakGuideR")
+
+res <- run_peakguider_workflow(
+  pkm = example_pkm,
+  ion_mode = "pos",
+  matrix = "HCCA"
+)
+
+names(res)
+head(res$candidate_annotations)
+}
 }

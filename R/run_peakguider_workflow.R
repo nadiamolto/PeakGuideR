@@ -43,9 +43,28 @@
 #' @param candidate_ppm_tol PPM tolerance for compound candidate matching.
 #' @param top_n Maximum number of compound candidates per neutral mass.
 #' Use `NULL` to retain all candidates within `candidate_ppm_tol`.
+#' @param include_single_adduct Logical. If `TRUE` (the default),
+#'   `candidate_annotations` also includes single-adduct hypotheses for
+#'   features not assigned to any adduct family (see
+#'   `build_single_adduct_candidates()`). If `FALSE`, only family-derived
+#'   candidates are included.
 #' @param quiet Logical. If `FALSE`, prints progress messages.
 #'
 #' @return A list with all main PeakGuideR workflow outputs.
+#'
+#' @examples
+#' \dontrun{
+#' data(example_pkm, package = "PeakGuideR")
+#'
+#' res <- run_peakguider_workflow(
+#'   pkm = example_pkm,
+#'   ion_mode = "pos",
+#'   matrix = "HCCA"
+#' )
+#'
+#' names(res)
+#' head(res$candidate_annotations)
+#' }
 #' @export
 #'
 run_peakguider_workflow <- function(
@@ -73,6 +92,7 @@ run_peakguider_workflow <- function(
     neutral_cluster_ppm = 5,
     candidate_ppm_tol = 5,
     top_n = 10L,
+    include_single_adduct = TRUE,
     quiet = FALSE
 ) {
 
@@ -223,8 +243,25 @@ run_peakguider_workflow <- function(
   )
 
   if (!isTRUE(quiet)) {
-    message("8/8 Building neutral-mass candidates...")
+    message("8/8 Building candidate annotations...")
   }
+
+  candidate_annotations <- build_candidate_annotations(
+    adduct_fam = adduct_fam,
+    feature_summary = feature_summary,
+    pkm = pkm,
+    ion_mode = ion_mode,
+    matrix = matrix,
+    adducts = adducts,
+    compound_db = compound_db,
+    standards_db = standards_db,
+    ppm_tol = candidate_ppm_tol,
+    neutral_cluster_ppm = neutral_cluster_ppm,
+    top_n = top_n,
+    adduct_min_score = adduct_min_score,
+    include_single_adduct = include_single_adduct,
+    quiet = quiet
+  )
 
   neutral_mass_candidates <- build_neutral_mass_candidates(
     adduct_fam = adduct_fam,
@@ -236,6 +273,7 @@ run_peakguider_workflow <- function(
     ppm_tol = candidate_ppm_tol,
     neutral_cluster_ppm = neutral_cluster_ppm,
     top_n = top_n,
+    candidate_annotations = candidate_annotations,
     quiet = quiet
   )
 
@@ -248,6 +286,7 @@ run_peakguider_workflow <- function(
     relation_table = relation_table,
     feature_summary = feature_summary,
     neutral_mass_candidates = neutral_mass_candidates,
+    candidate_annotations = candidate_annotations,
     pkm = pkm,
     parameters = list(
       input_type = input_type,
@@ -270,7 +309,8 @@ run_peakguider_workflow <- function(
       adduct_min_score = adduct_min_score,
       neutral_cluster_ppm = neutral_cluster_ppm,
       candidate_ppm_tol = candidate_ppm_tol,
-      top_n = top_n
+      top_n = top_n,
+      include_single_adduct = include_single_adduct
     )
   )
 
@@ -308,6 +348,7 @@ print.peakguider_workflow <- function(x, ...) {
   cat("Relation table:             ", nrow(x$relation_table), "\n")
   cat("Feature summary:            ", nrow(x$feature_summary), "\n")
   cat("Neutral-mass candidates:    ", nrow(x$neutral_mass_candidates), "\n")
+  cat("Candidate annotations:      ", nrow(x$candidate_annotations), "\n")
 
   invisible(x)
 }

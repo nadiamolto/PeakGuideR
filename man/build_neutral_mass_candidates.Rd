@@ -14,6 +14,7 @@ build_neutral_mass_candidates(
   ppm_tol = 5,
   neutral_cluster_ppm = 5,
   top_n = 10L,
+  candidate_annotations = NULL,
   quiet = FALSE
 )
 }
@@ -41,20 +42,71 @@ inferred from different adduct families.}
 \item{top_n}{Maximum number of compound candidates kept per neutral mass.
 Use \code{NULL} to retain all candidates within \code{ppm_tol}.}
 
+\item{candidate_annotations}{Optional pre-computed output from
+\code{\link[=build_candidate_annotations]{build_candidate_annotations()}}. If \code{NULL} (the default), the function
+computes its own family-only candidate table internally, exactly as
+before. If supplied (for example the same table already computed by
+\code{\link[=run_peakguider_workflow]{run_peakguider_workflow()}}, possibly including single-adduct rows),
+it is reused instead of recomputing the compound/standard matching and
+identity resolution from scratch; rows other than
+\code{hypothesis_origin == "family"} are filtered out first, so the returned
+table is unaffected by whether single-adduct hypotheses were included
+upstream.}
+
 \item{quiet}{Logical. If \code{FALSE}, database loading functions may print notices.}
 }
 \value{
-A data.frame with one row per neutral mass and compound candidate.
+A data.frame with one row per neutral mass and compound/standard
+candidate.
 }
 \description{
 Builds a neutral-mass candidate table from adduct families.
 
-This function summarizes neutral masses inferred from adduct families,
-adds isotope and EIPS support from \code{feature_summary}, matches the inferred
-neutral masses against a compound mass database, and optionally checks
-whether each candidate compound and inferred adduct are supported by the
-standard-adduct library.
+This function is a per-\code{neutral_mass_id} summary view derived from
+\code{\link[=build_candidate_annotations]{build_candidate_annotations()}} (family-derived candidates only; see
+\code{include_single_adduct} there for the full single-adduct-aware table
+returned as \code{candidate_annotations} by \code{\link[=run_peakguider_workflow]{run_peakguider_workflow()}}).
+Compound and standard-adduct identity are resolved with
+\code{\link[=resolve_cross_source_identity]{resolve_cross_source_identity()}}, so a shared molecular formula alone
+never fuses two different compounds into the same
+\code{has_standard_compound_match} (see the \code{dontrun} example in
+\code{\link[=resolve_cross_source_identity]{resolve_cross_source_identity()}} for details).
 
-The output contains one row per inferred neutral mass and compound candidate.
-Candidate compounds are putative mass matches, not definitive identifications.
+The output contains one row per inferred neutral mass and compound/standard
+candidate. Candidate compounds are putative mass matches, not definitive
+identifications.
+}
+\examples{
+\dontrun{
+data(example_pkm, package = "PeakGuideR")
+
+morph_results <- iso_morphology_candidates(example_pkm, prefer_mode = "ppm")
+cir_results <- cir_score(morph_results, example_pkm)
+eips_results <- eips_score(
+  morph_results, example_pkm,
+  ion_mode = "pos", cir_df = cir_results, morph_df = morph_results
+)
+
+adduct_edges <- adduct_candidates(example_pkm, ion_mode = "pos")
+adduct_fam <- adduct_families(adduct_edges)
+
+relation_table <- build_relation_table(
+  cir_results = cir_results,
+  eips_results = eips_results,
+  adduct_fam = adduct_fam
+)
+feature_summary <- build_feature_summary(
+  relation_table = relation_table,
+  adduct_fam = adduct_fam,
+  pkm = example_pkm
+)
+
+neutral_mass_candidates <- build_neutral_mass_candidates(
+  adduct_fam = adduct_fam,
+  feature_summary = feature_summary,
+  ion_mode = "pos",
+  matrix = "HCCA"
+)
+head(neutral_mass_candidates)
+}
 }

@@ -11,5 +11,6 @@
 #' These objects are internal implementation data and are not part of the
 #' public PeakGuideR API.
 #'
+#' @name PeakGuideR-internal-data
 #' @keywords internal
-"_PACKAGE"
+NULL

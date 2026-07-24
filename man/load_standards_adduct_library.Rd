@@ -18,3 +18,8 @@ The full non-commercial standard adduct library is distributed separately
 and can be supplied manually to the workflow through the \code{standards_db}
 argument.
 }
+\examples{
+standards_db <- load_standards_adduct_library(quiet = TRUE)
+head(standards_db)
+
+}

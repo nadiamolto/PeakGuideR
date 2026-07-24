@@ -57,3 +57,18 @@ If a \code{peakguider_workflow} object is supplied, adduct-family information is
 used when available to display adduct roles, family IDs and consensus neutral
 masses.
 }
+\examples{
+\dontrun{
+data(example_pkm, package = "PeakGuideR")
+
+res <- run_peakguider_workflow(
+  pkm = example_pkm,
+  ion_mode = "pos",
+  matrix = "HCCA",
+  quiet = TRUE
+)
+
+plot_peak_network(res, min_score = 0.3)
+}
+
+}

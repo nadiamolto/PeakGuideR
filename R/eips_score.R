@@ -82,6 +82,23 @@
 #'   \item `top_n_candidates`
 #' }
 #'
+#' @examples
+#' \dontrun{
+#' data(example_pkm, package = "PeakGuideR")
+#'
+#' morph_results <- iso_morphology_candidates(example_pkm, prefer_mode = "ppm")
+#' cir_results <- cir_score(morph_results, example_pkm)
+#'
+#' eips_results <- eips_score(
+#'   result = morph_results,
+#'   pkm = example_pkm,
+#'   ion_mode = "pos",
+#'   cir_df = cir_results,
+#'   morph_df = morph_results
+#' )
+#' head(eips_results)
+#' }
+#'
 #' @export
 eips_score <- function(result, pkm,
                        eips_n_table=NULL,
@@ -106,11 +123,6 @@ eips_score <- function(result, pkm,
 
   if (is.null(eips_n_table)) {
     eips_n_table <- get("eips_n_table", envir = asNamespace("PeakGuideR"))
-  }
-
-  gaussian_score <- function(err, tol) {
-    err <- pmax(0, err)
-    exp(-(err^2) / (2 * tol^2))
   }
 
   if (is.null(adducts)) adducts <- default_adducts()

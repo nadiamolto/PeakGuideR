@@ -24,6 +24,21 @@
 #'   `is_valid_c13`, `has_C13_M2`, `idx_C13_M2`, `mz_C13_M2` and
 #'   `score_C13_M2`.
 #'
+#' @examples
+#' \dontrun{
+#' data(example_pkm, package = "PeakGuideR")
+#'
+#' morph_results <- iso_morphology_candidates(example_pkm, prefer_mode = "ppm")
+#'
+#' cir_results <- cir_score(
+#'   result = morph_results,
+#'   pkm = example_pkm,
+#'   min_score_final = 0.6,
+#'   cir_rel_tol = 0.3
+#' )
+#' head(cir_results)
+#' }
+#'
 #' @export
 cir_score <- function(result, pkm,
                       min_score_final = 0.6,
@@ -34,11 +49,6 @@ cir_score <- function(result, pkm,
 
   ratio_method   <- match.arg(ratio_method)
   mask_strategy  <- match.arg(mask_strategy)
-
-  gaussian_score <- function(err, tol) {
-    err <- pmax(0, err)
-    exp(-(err^2) / (2 * tol^2))
-  }
 
   #Checks
   if (!is.data.frame(result)) {

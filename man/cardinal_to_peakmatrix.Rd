@@ -30,3 +30,16 @@ An object with rMSIprocPeakMatrix-like structure.
 Converts a supported Cardinal MSI object into a PeakGuideR peak matrix with
 an rMSIprocPeakMatrix-like structure.
 }
+\examples{
+\dontrun{
+# `cardinal_msi_data` is a Cardinal MSImagingExperiment object.
+pkm <- cardinal_to_peakmatrix(cardinal_msi_data)
+
+res <- run_peakguider_workflow(
+  pkm = pkm,
+  ion_mode = "pos",
+  matrix = "HCCA"
+)
+}
+
+}

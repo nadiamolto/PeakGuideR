@@ -191,12 +191,6 @@ adduct_candidates <- function(
       call. = FALSE
     )
   }
-  # Gaussian score from a non-negative error
-  gaussian_score <- function(err, tol) {
-    err <- pmax(0, err)
-    exp(-(err^2) / (2 * tol^2))
-  }
-
   empty_adduct_edges <- function() {
     data.frame(
       idx_i = integer(),
@@ -220,61 +214,19 @@ adduct_candidates <- function(
     )
   }
 
-  # Preprocess two intensity vectors
-  preprocess_xy <- function(x, y) {
-    keep <- is.finite(x) & is.finite(y) & (x != 0) & (y != 0)
-    if (sum(keep) < 3L) return(NULL)
-
-    if (min_quantile > 0) {
-      qx <- stats::quantile(x[keep], probs = min_quantile, na.rm = TRUE, type = 7)
-      qy <- stats::quantile(y[keep], probs = min_quantile, na.rm = TRUE, type = 7)
-      keep <- keep & (x > qx) & (y > qy)
-    }
-
-    if (sum(keep) < 3L) return(NULL)
-
-    xk <- x[keep]
-    yk <- y[keep]
-
-    if (clip_negatives) {
-      xk <- pmax(xk, 0)
-      yk <- pmax(yk, 0)
-    }
-
-    tf <- switch(
-      transform,
-      "none"  = identity,
-      "log1p" = log1p,
-      "zscore" = function(v) {
-        sdv <- stats::sd(v)
-        if (is.na(sdv) || sdv == 0) rep(0, length(v)) else (v - mean(v)) / sdv
-      }
+  # Preprocessing and similarity scoring are shared with
+  # build_single_adduct_candidates() via R/spatial_similarity.R.
+  preprocess_xy_local <- function(x, y) {
+    preprocess_xy(
+      x, y,
+      min_quantile = min_quantile,
+      clip_negatives = clip_negatives,
+      transform = transform
     )
-
-    list(x = tf(xk), y = tf(yk))
   }
 
-  # Similarity score in [0,1]
-  score_core <- function(x, y) {
-    if (length(x) != length(y) || length(x) < 3L) return(NA_real_)
-    if (stats::var(x) == 0 || stats::var(y) == 0) return(NA_real_)
-
-    switch(
-      method,
-      "pearson" = {
-        r <- suppressWarnings(stats::cor(x, y, method = "pearson"))
-        if (is.na(r)) NA_real_ else max(0, min(1, r * r))
-      },
-      "cosine" = {
-        num <- sum(x * y)
-        den <- sqrt(sum(x^2)) * sqrt(sum(y^2))
-        if (den == 0) NA_real_ else max(0, min(1, num / den))
-      },
-      "spearman" = {
-        r <- suppressWarnings(stats::cor(x, y, method = "spearman"))
-        if (is.na(r) || r <= 0) 0 else max(0, min(1, r * r))
-      }
-    )
+  score_core_local <- function(x, y) {
+    score_core(x, y, method = method)
   }
 
   mz <- as.numeric(pkm$mass)
@@ -344,10 +296,10 @@ adduct_candidates <- function(
 
       for (j in cand_j) {
         # spatial/intensity similarity
-        pp <- preprocess_xy(Imat_sorted[, i], Imat_sorted[, j])
+        pp <- preprocess_xy_local(Imat_sorted[, i], Imat_sorted[, j])
         if (is.null(pp)) {
           score_spatial <- NA_real_
-        } else { score_spatial<- score_core(pp$x, pp$y)}
+        } else { score_spatial<- score_core_local(pp$x, pp$y)}
 
         mz_j <- mz_sorted[j]
         delta_obs <- mz_j - mz_i

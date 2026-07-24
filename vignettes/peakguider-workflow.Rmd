@@ -114,7 +114,133 @@ The workflow stores both intermediate evidence tables and final summary tables:
 - `adduct_families`: groups of features compatible with the same inferred neutral mass;
 - `relation_table`: a unified table collecting the feature-feature relationships;
 - `feature_summary`: one row per detected m/z feature;
-- `neutral_mass_candidates`: inferred neutral masses with database candidate matches.
+- `neutral_mass_candidates`: inferred neutral masses with database candidate matches (a per-`neutral_mass_id` summary view);
+- `candidate_annotations`: the full long-format candidate table, including single-adduct hypotheses and priority scoring (see below).
+
+The evidence layers are built up in sequence, starting from isotope morphology and
+ending with adduct-family grouping, before the neutral-mass and candidate tables
+described later in this vignette are built. The next three sections cover the
+intermediate evidence tables in that order.
+
+# Isotope morphology candidates
+
+`morph_results` is useful when we want to see the individual isotope-morphology
+candidate pairs detected before carbon isotope-ratio and elemental
+isotope-pattern validation are applied.
+
+```{r morph-results}
+res$morph_results |>
+  dplyr::select(
+    idx_M0,
+    mz_M0,
+    iso_type,
+    element,
+    idx_cand,
+    mz_cand,
+    score_global,
+    tile_consistency,
+    score_final,
+    mass_err_ppm,
+    mass_dev_score
+  ) |>
+  head()
+```
+
+Useful columns include:
+
+- `idx_M0`, `mz_M0`: index and m/z of the anchor (candidate monoisotopic) feature.
+- `iso_type`: isotope type of the candidate pair (`C13_M1`, `C13_M2`, `N15_M1`, `O18_M2`, `S34_M2`, `Cl37_M2` or `Br81_M2`).
+- `element`: element associated with the isotope type (C, N, O, S, Cl or Br).
+- `k`: isotope level (1 or 2).
+- `z`: charge state (always 1).
+- `idx_cand`, `mz_cand`: index and m/z of the candidate isotope feature.
+- `score_global`: spatial/intensity morphology similarity score between the anchor and candidate features.
+- `tile_summary`, `tile_sd`, `tile_consistency`: tile-level summary, standard deviation and consistency of the morphology score across spatial subregions.
+- `score_final`: blended score combining `score_global` and `tile_consistency`.
+- `mass_err_da`, `mass_err_ppm`: candidate mass error versus the theoretical isotope mass difference, in Da and in ppm.
+- `mass_dev_err`, `mass_dev_score`: absolute mass error and its corresponding continuous mass-deviation score.
+
+# Carbon isotope-ratio (CIR) results
+
+`cir_results` is useful when we want to see which C13 M+1 candidates from
+`morph_results` are also supported by their observed carbon isotope ratio.
+
+```{r cir-results}
+res$cir_results |>
+  dplyr::select(
+    idx_M0,
+    mz_M0,
+    idx_M1,
+    mz_M1,
+    R_obs,
+    R_theo,
+    cir_rel_err,
+    cir_score,
+    cir_class,
+    is_valid_c13,
+    has_C13_M2
+  ) |>
+  head()
+```
+
+Useful columns include:
+
+- `idx_M0`, `mz_M0`: index and m/z of the candidate monoisotopic (M+0) feature.
+- `idx_M1`, `mz_M1`: index and m/z of the candidate C13 M+1 isotope feature.
+- `R_obs`: observed M+1/M+0 intensity ratio.
+- `R_theo`: theoretical carbon isotope ratio expected for the monoisotopic m/z.
+- `cir_rel_err`: relative error between `R_obs` and `R_theo`.
+- `is_valid_c13_raw`: whether `cir_rel_err` is below `cir_rel_tol`, before chained-isotope filtering.
+- `cir_score`: continuous isotope-ratio agreement score.
+- `cir_class`: qualitative agreement class (`"high_agreement"`, `"moderate_agreement"` or `"low_agreement"`).
+- `is_chained_c13`: whether the M+0 feature is itself already a valid M+1 of another pair (a chained-isotope artefact).
+- `is_valid_c13`: final validity, i.e. `is_valid_c13_raw` and not chained.
+- `has_C13_M2`: whether a supporting C13 M+2 candidate was also found for the same M+0.
+- `idx_C13_M2`, `mz_C13_M2`, `score_C13_M2`: index, m/z and morphology score of the supporting C13 M+2 feature, when `has_C13_M2` is `TRUE`.
+
+# Elemental isotope-pattern (EIPS) results
+
+`eips_results` is useful when we want to see elemental isotope-pattern evidence
+for non-carbon elements (N, O, S, Cl, Br), and whether it is also supported by
+a database-derived formula lookup.
+
+```{r eips-results}
+res$eips_results |>
+  dplyr::select(
+    idx_M0,
+    mz_M0,
+    idx_cand,
+    mz_iso,
+    iso_type,
+    element,
+    R_obs,
+    n_hat,
+    eips_rel_err,
+    score_eips,
+    has_formula_support
+  ) |>
+  head()
+```
+
+Useful columns include:
+
+- `idx_M0`, `mz_M0`: index and m/z of the monoisotopic (M+0) feature.
+- `idx_cand`, `mz_iso`: index and m/z of the candidate elemental-isotope feature.
+- `iso_type`: isotope type evaluated (e.g. `N15_M1`, `O18_M2`, `S34_M2`, `Cl37_M2`, `Br81_M2`).
+- `element`: element associated with the isotope channel (N, O, S, Cl or Br).
+- `k`: expected isotope channel evaluated for that element (M+1 for N, M+2 for O, S, Cl and Br).
+- `delta`: theoretical mass difference for the evaluated isotope.
+- `R_obs`: observed isotope/M0 intensity ratio.
+- `n_hat`: element atom count inferred from the ratio-only theoretical matching.
+- `R_theo_hat`: theoretical ratio corresponding to `n_hat`.
+- `eips_rel_err`: relative error between `R_obs` and `R_theo_hat`.
+- `is_valid_eips`: whether `eips_rel_err` is below `eips_rel_tol`.
+- `score_eips`: continuous elemental isotope-pattern agreement score.
+- `has_formula_support`: whether the inferred neutral mass and `n_hat` are additionally supported by a database-derived formula lookup.
+- `adduct_name`: adduct used to infer the neutral mass for formula support.
+- `neutral_mass`: neutral mass inferred from `mz_M0` and `adduct_name`.
+- `mz_mono_db`, `n_el_db`: monoisotopic mass and element count from the matched database formula entry, when `has_formula_support` is `TRUE`.
+- `neutral_err_ppm`: ppm error between `neutral_mass` and `mz_mono_db`.
 
 # Feature-level summary
 
@@ -212,9 +338,45 @@ Useful columns include:
 This table is useful for tracing why a given feature was assigned a particular
 role in `feature_summary`.
 
+# Adduct edges
+
+`adduct_edges` is useful when we want to see the pairwise adduct-compatible
+relationships used to build `adduct_families`.
+
+```{r adduct-edges}
+res$adduct_edges |>
+  dplyr::select(
+    idx_i,
+    mz_i,
+    adduct_i,
+    idx_j,
+    mz_j,
+    adduct_j,
+    delta_err_ppm,
+    neutral_mass_mean,
+    neutral_err_ppm,
+    score_adduct,
+    is_valid_adduct
+  ) |>
+  head()
+```
+
+Useful columns include:
+
+- `idx_i`, `mz_i`: index and m/z of the first feature in the candidate pair.
+- `idx_j`, `mz_j`: index and m/z of the second feature in the candidate pair.
+- `adduct_i`, `adduct_j`: adduct hypotheses assigned to each feature.
+- `delta_theo`, `delta_obs`, `delta_err_ppm`: theoretical and observed m/z difference between the two features, and the ppm error between them.
+- `neutral_mass_i`, `neutral_mass_j`: neutral mass inferred from each feature under its adduct hypothesis.
+- `neutral_mass_mean`, `neutral_err_ppm`: mean of `neutral_mass_i`/`neutral_mass_j`, and the ppm disagreement between them.
+- `score_spatial`: spatial/intensity similarity score between the two features.
+- `score_mass`: neutral-mass consistency score.
+- `score_adduct`: adduct evidence score, equal to `score_spatial` among mass-compatible candidate pairs.
+- `is_valid_adduct`: whether `score_adduct` meets `min_score_spatial`.
+
 # Adduct families
 
-`adduct_families` groups pairwise adduct relationships into families of features that are 
+`adduct_families` groups pairwise adduct relationships into families of features that are
 compatible with the same inferred neutral mass.
 
 ```{r adduct-families-names}
@@ -240,6 +402,35 @@ res$adduct_families$family_edges |>
   head()
 ```
 
+Useful columns include:
+
+**`family_summary`**
+
+- `family_id`: family identifier.
+- `neutral_mass_consensus`: consensus neutral mass supported by the family.
+- `neutral_mass_range_ppm`: ppm range of the neutral masses inferred across the family's edges.
+- `family_size`: number of unique features in the family.
+- `n_edges`: number of adduct edges assigned to the family.
+- `mean_score_adduct`, `median_score_adduct`: mean and median `score_adduct` across the family's edges.
+- `adducts`: adduct roles observed in the family.
+- `feature_idx`: indices of the features belonging to the family.
+- `has_role_conflict`: whether the same feature appears with more than one adduct role within the family.
+
+**`family_members`**
+
+- `family_id`: family identifier.
+- `idx`, `mz`: feature index and m/z.
+- `adduct`: adduct role assigned to the feature within the family.
+- `neutral_mass_from_feature`: neutral mass inferred from this feature under its assigned adduct role.
+- `n_edges`: number of edges connecting this feature within the family.
+- `mean_edge_score`: mean `score_adduct` across those edges.
+
+**`family_edges`**
+
+The filtered adduct edges assigned to a family — same columns as `adduct_edges`
+(see above), plus:
+
+- `family_id`: the family the edge was assigned to.
 
 # Peak relationship network
 
@@ -359,11 +550,16 @@ Useful columns include:
 - `candidate_formula`: candidate molecular formula.
 - `candidate_neutral_mass`: neutral monoisotopic mass from the database.
 - `candidate_ppm_error`: mass error between the inferred neutral mass and the candidate.
-- `has_standard_compound_match`: whether the candidate compound is present in the standard-adduct library.
-- `has_standard_adduct_match`: whether the inferred adduct is supported for that compound in the standard-adduct library.
+- `has_standard_compound_match`: whether the candidate compound is *the same compound* as a standard-adduct library entry, confirmed through a strong identifier (InChIKey, InChI, SMILES or a shared HMDB/ChEBI id) rather than through molecular formula alone.
+- `has_standard_adduct_match`: whether at least one inferred adduct is supported for that compound in the standard-adduct library.
 
 The database match is mass-based and should be interpreted as a putative
-candidate, not as definitive identification.
+candidate, not as definitive identification. In particular, `neutral_mass_candidates`
+never fuses two different compounds that merely share a molecular formula
+(for example structural isomers) into the same standard-adduct match; see
+`candidate_annotations` and `resolve_cross_source_identity()` below for the
+full identity-resolution logic and for cases flagged as
+`possible_link_formula_only`.
 
 # Summarising candidate matches
 
@@ -382,6 +578,74 @@ res$neutral_mass_candidates |>
     n_with_standard_adduct_match = sum(has_standard_adduct_match %in% TRUE)
   )
 ```
+
+# Candidate annotations
+
+`candidate_annotations` is the full long-format candidate table underlying
+`neutral_mass_candidates`. It is built by `build_candidate_annotations()` and
+contains one row per neutral mass, feature(s) and candidate identity,
+including:
+
+- candidates derived from adduct families (`hypothesis_origin = "family"`);
+- candidates derived from single, unassigned features evaluated against every
+  compatible adduct (`hypothesis_origin = "single_adduct_isolated"` or
+  `"single_adduct_clustered"` when the inferred mass matches an existing
+  adduct family), computed by `build_single_adduct_candidates()`.
+
+Compound and standard-adduct identity are resolved with
+`resolve_cross_source_identity()`, which links `compound_db` and
+`standards_db` candidates through a hierarchy of identifiers (InChIKey, then
+InChI, then SMILES, then a shared HMDB/ChEBI id), stopping at the first level
+that matches. A match on molecular formula alone is never treated as
+identity; such candidates are kept as separate rows and cross-referenced
+through `possible_link_formula_only` for manual review.
+
+```{r candidate-annotations}
+res$candidate_annotations |>
+  dplyr::select(
+    neutral_mass_id,
+    feature_idx,
+    inferred_adduct,
+    hypothesis_origin,
+    source,
+    identity_match_type,
+    broad_db_name,
+    standard_db_name,
+    priority_score,
+    confidence_class,
+    ambiguous_isomeric
+  ) |>
+  dplyr::filter(!is.na(priority_score)) |>
+  dplyr::arrange(dplyr::desc(priority_score)) |>
+  head()
+```
+
+Useful columns include:
+
+- `hypothesis_origin`: whether the candidate comes from an adduct family or a
+  single-adduct hypothesis.
+- `source`: `"both"` (fused broad-database and standard-library identity),
+  `"broad_db_only"` or `"standards_only"`.
+- `identity_match_type`: the identifier level that produced a `"both"` fusion
+  (`"inchikey"`, `"inchi"`, `"smiles"` or `"shared_id"`); bookkeeping only,
+  not an evidence score.
+- `mass_error_score`, `adduct_spatial_score`, `isotope_evidence_score`,
+  `eips_evidence_score`, `standard_adduct_recovery_score`,
+  `family_coherence_score`: the individual evidence components combined into
+  `priority_score` (see `default_priority_weights()` and
+  `compute_priority_score()`). Components that do not apply (for example
+  `standard_adduct_recovery_score` when no standard-library compound is
+  within tolerance) are `NA`, not `0`, and are excluded from the weighted
+  average rather than penalising the candidate.
+- `priority_score`: weighted evidence score in the range 0 to 1, used to rank
+  candidates within a `neutral_mass_id`.
+- `confidence_class`: a categorical summary of the evidence combination (for
+  example `"identity_confirmed_adduct_recovered"` or
+  `"broad_db_only_mass_only"`).
+- `ambiguous_isomeric`: `TRUE` when the top two candidates for the same
+  `neutral_mass_id` have priority scores closer than `ambiguity_gap`
+  (default `0.05`), signalling that isomers cannot be confidently
+  discriminated from the available evidence.
 
 # Using full databases from Zenodo
 

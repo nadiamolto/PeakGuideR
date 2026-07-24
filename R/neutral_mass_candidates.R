@@ -3,14 +3,19 @@
 #' @description
 #' Builds a neutral-mass candidate table from adduct families.
 #'
-#' This function summarizes neutral masses inferred from adduct families,
-#' adds isotope and EIPS support from `feature_summary`, matches the inferred
-#' neutral masses against a compound mass database, and optionally checks
-#' whether each candidate compound and inferred adduct are supported by the
-#' standard-adduct library.
+#' This function is a per-`neutral_mass_id` summary view derived from
+#' [build_candidate_annotations()] (family-derived candidates only; see
+#' `include_single_adduct` there for the full single-adduct-aware table
+#' returned as `candidate_annotations` by [run_peakguider_workflow()]).
+#' Compound and standard-adduct identity are resolved with
+#' [resolve_cross_source_identity()], so a shared molecular formula alone
+#' never fuses two different compounds into the same
+#' `has_standard_compound_match` (see the `dontrun` example in
+#' [resolve_cross_source_identity()] for details).
 #'
-#' The output contains one row per inferred neutral mass and compound candidate.
-#' Candidate compounds are putative mass matches, not definitive identifications.
+#' The output contains one row per inferred neutral mass and compound/standard
+#' candidate. Candidate compounds are putative mass matches, not definitive
+#' identifications.
 #'
 #' @param adduct_fam Output from `adduct_families()`.
 #' @param feature_summary Output from `build_feature_summary()`.
@@ -26,9 +31,54 @@
 #'   inferred from different adduct families.
 #' @param top_n Maximum number of compound candidates kept per neutral mass.
 #' Use `NULL` to retain all candidates within `ppm_tol`.
+#' @param candidate_annotations Optional pre-computed output from
+#'   [build_candidate_annotations()]. If `NULL` (the default), the function
+#'   computes its own family-only candidate table internally, exactly as
+#'   before. If supplied (for example the same table already computed by
+#'   [run_peakguider_workflow()], possibly including single-adduct rows),
+#'   it is reused instead of recomputing the compound/standard matching and
+#'   identity resolution from scratch; rows other than
+#'   `hypothesis_origin == "family"` are filtered out first, so the returned
+#'   table is unaffected by whether single-adduct hypotheses were included
+#'   upstream.
 #' @param quiet Logical. If `FALSE`, database loading functions may print notices.
 #'
-#' @return A data.frame with one row per neutral mass and compound candidate.
+#' @return A data.frame with one row per neutral mass and compound/standard
+#'   candidate.
+#'
+#' @examples
+#' \dontrun{
+#' data(example_pkm, package = "PeakGuideR")
+#'
+#' morph_results <- iso_morphology_candidates(example_pkm, prefer_mode = "ppm")
+#' cir_results <- cir_score(morph_results, example_pkm)
+#' eips_results <- eips_score(
+#'   morph_results, example_pkm,
+#'   ion_mode = "pos", cir_df = cir_results, morph_df = morph_results
+#' )
+#'
+#' adduct_edges <- adduct_candidates(example_pkm, ion_mode = "pos")
+#' adduct_fam <- adduct_families(adduct_edges)
+#'
+#' relation_table <- build_relation_table(
+#'   cir_results = cir_results,
+#'   eips_results = eips_results,
+#'   adduct_fam = adduct_fam
+#' )
+#' feature_summary <- build_feature_summary(
+#'   relation_table = relation_table,
+#'   adduct_fam = adduct_fam,
+#'   pkm = example_pkm
+#' )
+#'
+#' neutral_mass_candidates <- build_neutral_mass_candidates(
+#'   adduct_fam = adduct_fam,
+#'   feature_summary = feature_summary,
+#'   ion_mode = "pos",
+#'   matrix = "HCCA"
+#' )
+#' head(neutral_mass_candidates)
+#' }
 #' @export
 build_neutral_mass_candidates <- function(
     adduct_fam,
@@ -40,6 +90,7 @@ build_neutral_mass_candidates <- function(
     ppm_tol = 5,
     neutral_cluster_ppm = 5,
     top_n = 10L,
+    candidate_annotations = NULL,
     quiet = FALSE
 ) {
   ion_mode <- match.arg(ion_mode)
@@ -106,58 +157,48 @@ build_neutral_mass_candidates <- function(
     neutral_cluster_ppm <- ppm_tol
   }
 
-  if (is.null(compound_db)) {
-    compound_db <- load_compound_mass_database(quiet = quiet)
-  }
+  if (is.null(candidate_annotations)) {
+    if (is.null(compound_db)) {
+      compound_db <- load_compound_mass_database(quiet = quiet)
+    }
 
-  stopifnot(is.data.frame(compound_db))
+    stopifnot(is.data.frame(compound_db))
 
-  if (!"MonoisotopicMass" %in% names(compound_db)) {
-    stop(
-      "compound_db must contain a `MonoisotopicMass` column.",
-      call. = FALSE
-    )
+    if (!"MonoisotopicMass" %in% names(compound_db)) {
+      stop(
+        "compound_db must contain a `MonoisotopicMass` column.",
+        call. = FALSE
+      )
+    }
+  } else {
+    stopifnot(is.data.frame(candidate_annotations))
+
+    if (!"hypothesis_origin" %in% names(candidate_annotations)) {
+      stop(
+        "`candidate_annotations` must contain a `hypothesis_origin` column.",
+        call. = FALSE
+      )
+    }
   }
 
   fam_summary <- adduct_fam$family_summary
   fam_members <- adduct_fam$family_members
 
   fam_summary$.neutral_mass <- as.numeric(fam_summary$neutral_mass_consensus)
+  keep_fam <- is.finite(fam_summary$.neutral_mass)
+  fam_summary_f <- fam_summary[keep_fam, , drop = FALSE]
 
-  fam_summary <- fam_summary |>
-    dplyr::filter(is.finite(.neutral_mass)) |>
-    dplyr::arrange(.neutral_mass)
-
-  if (nrow(fam_summary) == 0) {
+  if (nrow(fam_summary_f) == 0) {
     return(dplyr::tibble())
   }
 
-  neutral_mass_id <- integer(nrow(fam_summary))
-  current_id <- 1L
-  neutral_mass_id[1] <- current_id
-  current_mass <- fam_summary$.neutral_mass[1]
-
-  if (nrow(fam_summary) > 1) {
-    for (i in 2:nrow(fam_summary)) {
-      ppm_diff <- 1e6 * abs(fam_summary$.neutral_mass[i] - current_mass) /
-        pmax(abs(current_mass), 1e-12)
-
-      if (is.finite(ppm_diff) && ppm_diff <= neutral_cluster_ppm) {
-        neutral_mass_id[i] <- current_id
-      } else {
-        current_id <- current_id + 1L
-        neutral_mass_id[i] <- current_id
-        current_mass <- fam_summary$.neutral_mass[i]
-      }
-    }
-  }
-
-  fam_summary$neutral_mass_id <- neutral_mass_id
+  fam_summary_f$neutral_mass_id <- assign_neutral_mass_clusters(
+    fam_summary_f$.neutral_mass, neutral_cluster_ppm
+  )
 
   member_info <- fam_members |>
     dplyr::left_join(
-      fam_summary |>
-        dplyr::select(family_id, neutral_mass_id),
+      fam_summary_f |> dplyr::select(family_id, neutral_mass_id),
       by = "family_id"
     ) |>
     dplyr::filter(!is.na(neutral_mass_id))
@@ -188,15 +229,10 @@ build_neutral_mass_candidates <- function(
       has_eips = dplyr::coalesce(has_eips, FALSE)
     )
 
-  neutral_summary <- fam_summary |>
+  neutral_summary <- fam_summary_f |>
     dplyr::group_by(neutral_mass_id) |>
     dplyr::summarise(
       neutral_mass_consensus = mean(.neutral_mass, na.rm = TRUE),
-      neutral_mass_min = min(.neutral_mass, na.rm = TRUE),
-      neutral_mass_max = max(.neutral_mass, na.rm = TRUE),
-      neutral_mass_range_ppm =
-        1e6 * (neutral_mass_max - neutral_mass_min) /
-        pmax(abs(neutral_mass_consensus), 1e-12),
       n_adduct_families = dplyr::n_distinct(family_id),
       adduct_family_ids = paste(sort(unique(family_id)), collapse = ";"),
       .groups = "drop"
@@ -261,364 +297,91 @@ build_neutral_mass_candidates <- function(
   neutral_table <- neutral_summary |>
     dplyr::left_join(adduct_support_summary, by = "neutral_mass_id")
 
-  db_cols <- intersect(
-    c(
-      "Source",
-      "DB_ID",
-      "Name",
-      "MolecularFormula",
-      "MonoisotopicMass",
-      "StdInChI",
-      "StdInChIKey",
-      "SMILES",
-      "Kegg"
-    ),
-    names(compound_db)
-  )
-
-  db2 <- compound_db |>
-    dplyr::select(dplyr::all_of(db_cols)) |>
-    dplyr::mutate(
-      candidate_mass = as.numeric(MonoisotopicMass)
-    ) |>
-    dplyr::filter(is.finite(candidate_mass))
-
-  neutral_for_matching <- neutral_table |>
-    dplyr::select(neutral_mass_id, neutral_mass_consensus)
-
-  compound_candidates <- tidyr::crossing(neutral_for_matching, db2) |>
-    dplyr::mutate(
-      candidate_ppm_error =
-        1e6 * abs(candidate_mass - neutral_mass_consensus) /
-        pmax(abs(neutral_mass_consensus), 1e-12)
-    ) |>
-    dplyr::filter(
-      is.finite(candidate_ppm_error),
-      candidate_ppm_error <= ppm_tol
-    ) |>
-    dplyr::arrange(
-      neutral_mass_id,
-      candidate_ppm_error
+  # --- Candidate identity, resolved with the same identifier hierarchy
+  # used across PeakGuideR (see resolve_cross_source_identity()). A
+  # pre-computed table can be supplied to avoid repeating this matching when
+  # the caller (e.g. run_peakguider_workflow()) already computed it. --------
+  if (is.null(candidate_annotations)) {
+    candidate_annotations <- build_candidate_annotations(
+      adduct_fam = adduct_fam,
+      feature_summary = feature_summary,
+      pkm = NULL,
+      ion_mode = ion_mode,
+      matrix = matrix,
+      compound_db = compound_db,
+      standards_db = standards_db,
+      ppm_tol = ppm_tol,
+      neutral_cluster_ppm = neutral_cluster_ppm,
+      top_n = top_n,
+      include_single_adduct = FALSE,
+      quiet = quiet
     )
-
-  if (!is.null(top_n)) {
-    compound_candidates <- compound_candidates |>
-      dplyr::group_by(neutral_mass_id) |>
-      dplyr::slice_head(n = top_n) |>
-      dplyr::ungroup()
-  }
-
-  compound_candidates <- compound_candidates |>
-    dplyr::rename(
-      candidate_source = Source,
-      candidate_db_id = DB_ID,
-      candidate_name = Name,
-      candidate_formula = MolecularFormula,
-      candidate_neutral_mass = MonoisotopicMass,
-      candidate_inchi = StdInChI,
-      candidate_inchikey = StdInChIKey,
-      candidate_smiles = SMILES,
-      candidate_kegg = Kegg
-    )
-
-  if (nrow(compound_candidates) == 0) {
-    out <- neutral_table |>
-      dplyr::mutate(
-        candidate_source = NA_character_,
-        candidate_db_id = NA_character_,
-        candidate_name = NA_character_,
-        candidate_formula = NA_character_,
-        candidate_neutral_mass = NA_real_,
-        candidate_inchi = NA_character_,
-        candidate_inchikey = NA_character_,
-        candidate_smiles = NA_character_,
-        candidate_kegg = NA_character_,
-        candidate_mass = NA_real_,
-        candidate_ppm_error = NA_real_,
-      )
   } else {
-    out <- neutral_table |>
-      dplyr::left_join(
-        compound_candidates,
-        by = c("neutral_mass_id", "neutral_mass_consensus")
-      )
+    candidate_annotations <- candidate_annotations |>
+      dplyr::filter(hypothesis_origin == "family")
   }
 
-  out <- out |>
+  matched_inferred_adducts <- function(inferred_adduct, standard_db_adducts) {
+    inferred_set <- unique(trimws(strsplit(inferred_adduct, ";", fixed = TRUE)[[1]]))
+    std_set <- if (is.na(standard_db_adducts)) {
+      character(0)
+    } else {
+      unique(trimws(strsplit(standard_db_adducts, ";", fixed = TRUE)[[1]]))
+    }
+    intersect(inferred_set, std_set)
+  }
+
+  candidate_view <- candidate_annotations |>
     dplyr::mutate(
-      matrix = if (is.null(matrix)) NA_character_ else as.character(matrix),
-      has_standard_compound_match = NA,
-      has_standard_adduct_match = NA,
-      standard_matched_name = NA_character_,
-      standard_matched_adducts = NA_character_,
-      standard_matched_inferred_adducts = NA_character_,
-      n_standard_matched_adducts = NA_integer_
+      candidate_source = dplyr::if_else(
+        source == "standards_only", "standards_db", broad_db_source
+      ),
+      candidate_db_id = dplyr::coalesce(broad_db_id, standard_db_compound_id),
+      candidate_name = dplyr::coalesce(broad_db_name, standard_db_name),
+      candidate_formula = dplyr::coalesce(broad_db_formula, standard_db_formula),
+      candidate_inchi = broad_db_inchi,
+      candidate_inchikey = dplyr::coalesce(broad_db_inchikey, standard_db_inchikey),
+      candidate_smiles = dplyr::coalesce(broad_db_smiles, standard_db_smiles),
+      candidate_kegg = NA_character_,
+      candidate_mass = candidate_neutral_mass,
+      has_standard_compound_match = source == "both",
+      has_standard_adduct_match = dplyr::coalesce(standard_adduct_recovery_score, 0) > 0,
+      standard_matched_name = standard_db_name,
+      standard_matched_adducts = standard_db_adducts
     )
 
-  if (!is.null(matrix) && identical(toupper(matrix), "HCCA")) {
-    if (is.null(standards_db)) {
-      standards_db <- load_standards_adduct_library(quiet = quiet)
-    }
-
-    stopifnot(is.data.frame(standards_db))
-
-    required_std_cols <- c("adduct", "POLARITY")
-    missing_std_cols <- setdiff(required_std_cols, names(standards_db))
-
-    if (length(missing_std_cols) > 0) {
-      warning(
-        "standards_db is missing required columns: ",
-        paste(missing_std_cols, collapse = ", "),
-        ". Standard-adduct support will not be added.",
-        call. = FALSE
-      )
-    } else {
-      std <- standards_db |>
-        dplyr::filter(POLARITY == ion_mode)
-
-      if ("found" %in% names(std)) {
-        std <- std |>
-          dplyr::filter(found %in% TRUE)
-      }
-
-      if ("keep_final" %in% names(std)) {
-        std <- std |>
-          dplyr::filter(keep_final %in% TRUE)
-      }
-
-      if (!"COMPOUND_ID" %in% names(std)) {
-        std$COMPOUND_ID <- NA_character_
-      }
-
-      if (!"Master_List_NAME" %in% names(std)) {
-        std$Master_List_NAME <- NA_character_
-      }
-
-      if (!"HMDB_clean" %in% names(std)) {
-        std$HMDB_clean <- NA_character_
-      }
-
-      if (!"ChEBI" %in% names(std)) {
-        std$ChEBI <- NA_character_
-      }
-
-      if (!"InCHIKey" %in% names(std)) {
-        std$InCHIKey <- NA_character_
-      }
-
-      if (!"SMILES" %in% names(std)) {
-        std$SMILES <- NA_character_
-      }
-
-      if (!"MOLECULAR_FORMULA" %in% names(std)) {
-        std$MOLECULAR_FORMULA <- NA_character_
-      }
-
-      std_clean <- std |>
-        dplyr::mutate(
-          std_compound_id = as.character(COMPOUND_ID),
-          std_name = as.character(Master_List_NAME),
-          std_hmdb = as.character(HMDB_clean),
-          std_chebi = as.character(ChEBI),
-          std_inchikey = as.character(InCHIKey),
-          std_smiles = as.character(SMILES),
-          std_formula = as.character(MOLECULAR_FORMULA),
-          std_adduct = as.character(adduct)
-        ) |>
-        dplyr::select(
-          std_compound_id,
-          std_name,
-          std_hmdb,
-          std_chebi,
-          std_inchikey,
-          std_smiles,
-          std_formula,
-          std_adduct
-        ) |>
-        dplyr::distinct()
-
-      candidate_adducts <- out |>
-        dplyr::select(
-          neutral_mass_id,
-          candidate_source,
-          candidate_db_id,
-          candidate_name,
-          candidate_formula,
-          candidate_inchikey,
-          candidate_smiles,
-          inferred_adducts
-        ) |>
-        dplyr::mutate(
-          inferred_adducts = as.character(inferred_adducts)
-        ) |>
-        tidyr::separate_rows(inferred_adducts, sep = ";") |>
-        dplyr::rename(inferred_adduct = inferred_adducts) |>
-        dplyr::filter(
-          !is.na(candidate_name),
-          !is.na(inferred_adduct),
-          inferred_adduct != ""
-        )
-
-      candidate_adducts <- candidate_adducts |>
-        dplyr::mutate(
-          match_hmdb = dplyr::if_else(
-            candidate_source == "HMDB",
-            as.character(candidate_db_id),
-            NA_character_
-          ),
-          match_chebi = dplyr::if_else(
-            candidate_source == "CHEBI",
-            as.character(candidate_db_id),
-            NA_character_
-          ),
-          match_inchikey = as.character(candidate_inchikey),
-          match_smiles = as.character(candidate_smiles),
-          match_formula = as.character(candidate_formula)
-        )
-
-      std_matches <- dplyr::bind_rows(
-        candidate_adducts |>
-          dplyr::filter(!is.na(match_inchikey), match_inchikey != "") |>
-          dplyr::inner_join(
-            std_clean |>
-              dplyr::filter(!is.na(std_inchikey), std_inchikey != ""),
-            by = c("match_inchikey" = "std_inchikey"),
-            relationship = "many-to-many"
-          ),
-
-        candidate_adducts |>
-          dplyr::filter(!is.na(match_hmdb), match_hmdb != "") |>
-          dplyr::inner_join(
-            std_clean |>
-              dplyr::filter(!is.na(std_hmdb), std_hmdb != ""),
-            by = c("match_hmdb" = "std_hmdb"),
-            relationship = "many-to-many"
-          ),
-
-        candidate_adducts |>
-          dplyr::filter(!is.na(match_chebi), match_chebi != "") |>
-          dplyr::inner_join(
-            std_clean |>
-              dplyr::filter(!is.na(std_chebi), std_chebi != ""),
-            by = c("match_chebi" = "std_chebi"),
-            relationship = "many-to-many"
-          ),
-
-        candidate_adducts |>
-          dplyr::filter(!is.na(match_smiles), match_smiles != "") |>
-          dplyr::inner_join(
-            std_clean |>
-              dplyr::filter(!is.na(std_smiles), std_smiles != ""),
-            by = c("match_smiles" = "std_smiles"),
-            relationship = "many-to-many"
-          ),
-
-        candidate_adducts |>
-          dplyr::filter(!is.na(match_formula), match_formula != "") |>
-          dplyr::inner_join(
-            std_clean |>
-              dplyr::filter(!is.na(std_formula), std_formula != ""),
-            by = c("match_formula" = "std_formula"),
-            relationship = "many-to-many"
-          )
-      ) |>
-        dplyr::distinct()
-
-      if (nrow(std_matches) > 0) {
-        std_support <- std_matches |>
-          dplyr::mutate(
-            inferred_adduct_is_in_standard =
-              inferred_adduct == std_adduct
-          ) |>
-          dplyr::group_by(
-            neutral_mass_id,
-            candidate_source,
-            candidate_db_id,
-            candidate_name,
-            candidate_formula
-          ) |>
-          dplyr::summarise(
-            has_standard_compound_match = TRUE,
-            has_standard_adduct_match = any(
-              inferred_adduct_is_in_standard,
-              na.rm = TRUE
-            ),
-            standard_matched_name = paste(
-              sort(unique(std_name)),
-              collapse = ";"
-            ),
-            standard_matched_adducts = paste(
-              sort(unique(std_adduct)),
-              collapse = ";"
-            ),
-            standard_matched_inferred_adducts = paste(
-              sort(unique(inferred_adduct[inferred_adduct_is_in_standard])),
-              collapse = ";"
-            ),
-            n_standard_matched_adducts = dplyr::n_distinct(
-              inferred_adduct[inferred_adduct_is_in_standard]
-            ),
-            .groups = "drop"
-          ) |>
-          dplyr::mutate(
-            standard_matched_inferred_adducts = dplyr::if_else(
-              standard_matched_inferred_adducts == "",
-              NA_character_,
-              standard_matched_inferred_adducts
-            )
-          )
-
-        out <- out |>
-          dplyr::select(
-            -has_standard_compound_match,
-            -has_standard_adduct_match,
-            -standard_matched_name,
-            -standard_matched_adducts,
-            -standard_matched_inferred_adducts,
-            -n_standard_matched_adducts
-          ) |>
-          dplyr::left_join(
-            std_support,
-            by = c(
-              "neutral_mass_id",
-              "candidate_source",
-              "candidate_db_id",
-              "candidate_name",
-              "candidate_formula"
-            )
-          ) |>
-          dplyr::mutate(
-            has_standard_compound_match = dplyr::coalesce(
-              has_standard_compound_match,
-              FALSE
-            ),
-            has_standard_adduct_match = dplyr::coalesce(
-              has_standard_adduct_match,
-              FALSE
-            ),
-            n_standard_matched_adducts = dplyr::coalesce(
-              as.integer(n_standard_matched_adducts),
-              0L
-            )
-          )
-      } else {
-        out <- out |>
-          dplyr::mutate(
-            has_standard_compound_match = FALSE,
-            has_standard_adduct_match = FALSE,
-            n_standard_matched_adducts = 0L
-          )
-      }
-    }
+  if (nrow(candidate_view) > 0) {
+    matched_list <- mapply(
+      matched_inferred_adducts,
+      candidate_view$inferred_adduct, candidate_view$standard_db_adducts,
+      SIMPLIFY = FALSE
+    )
+    candidate_view$standard_matched_inferred_adducts <- vapply(
+      matched_list,
+      function(x) if (length(x)) paste(sort(x), collapse = ";") else NA_character_,
+      character(1)
+    )
+    candidate_view$n_standard_matched_adducts <- lengths(matched_list)
+  } else {
+    candidate_view$standard_matched_inferred_adducts <- character(0)
+    candidate_view$n_standard_matched_adducts <- integer(0)
   }
 
-  out <- out |>
+  candidate_view <- candidate_view |>
     dplyr::select(
-      -dplyr::any_of(c(
-        "neutral_mass_min",
-        "neutral_mass_max",
-        "neutral_mass_range_ppm"
-      ))
+      neutral_mass_id,
+      candidate_source, candidate_db_id, candidate_name, candidate_formula,
+      candidate_neutral_mass, candidate_inchi, candidate_inchikey,
+      candidate_smiles, candidate_kegg, candidate_mass, candidate_ppm_error,
+      has_standard_compound_match, has_standard_adduct_match,
+      standard_matched_name, standard_matched_adducts,
+      standard_matched_inferred_adducts, n_standard_matched_adducts
+    )
+
+  out <- neutral_table |>
+    dplyr::left_join(candidate_view, by = "neutral_mass_id") |>
+    dplyr::mutate(
+      matrix = if (is.null(matrix)) NA_character_ else as.character(matrix)
     )
 
   out |>

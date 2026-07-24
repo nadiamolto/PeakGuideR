@@ -126,3 +126,21 @@ N is evaluated at M+1; O, S, Cl and Br are evaluated at M+2.
 EIPS does not perform the initial mass-difference search. It evaluates
 elemental isotope candidates already detected by \code{iso_morphology_candidates()}.
 }
+\examples{
+\dontrun{
+data(example_pkm, package = "PeakGuideR")
+
+morph_results <- iso_morphology_candidates(example_pkm, prefer_mode = "ppm")
+cir_results <- cir_score(morph_results, example_pkm)
+
+eips_results <- eips_score(
+  result = morph_results,
+  pkm = example_pkm,
+  ion_mode = "pos",
+  cir_df = cir_results,
+  morph_df = morph_results
+)
+head(eips_results)
+}
+
+}

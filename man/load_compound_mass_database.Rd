@@ -17,3 +17,8 @@ Loads the example compound mass database included with PeakGuideR.
 The full non-commercial database is distributed separately and can be
 supplied manually to the workflow through the \code{compound_db} argument.
 }
+\examples{
+compound_db <- load_compound_mass_database(quiet = TRUE)
+head(compound_db)
+
+}

@@ -48,3 +48,19 @@ C13 candidates. It does not assign definitive isotope annotations by itself.
 
 Filters C13_M1 candidates and validates against theoretical ratios.
 }
+\examples{
+\dontrun{
+data(example_pkm, package = "PeakGuideR")
+
+morph_results <- iso_morphology_candidates(example_pkm, prefer_mode = "ppm")
+
+cir_results <- cir_score(
+  result = morph_results,
+  pkm = example_pkm,
+  min_score_final = 0.6,
+  cir_rel_tol = 0.3
+)
+head(cir_results)
+}
+
+}

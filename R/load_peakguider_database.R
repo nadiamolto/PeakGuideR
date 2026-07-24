@@ -9,6 +9,25 @@
 #'   `standards_adduct_library_noncommercial.rds`.
 #'
 #' @return A list with `compound_db` and `standards_db`.
+#'
+#' @examples
+#' \dontrun{
+#' dbs <- load_peakguider_databases(
+#'   compound_db_path = "path/to/compound_mass_database_noncommercial.rds",
+#'   standards_db_path = "path/to/standards_adduct_library_noncommercial.rds"
+#' )
+#'
+#' data(example_pkm, package = "PeakGuideR")
+#'
+#' res <- run_peakguider_workflow(
+#'   pkm = example_pkm,
+#'   ion_mode = "pos",
+#'   matrix = "HCCA",
+#'   compound_db = dbs$compound_db,
+#'   standards_db = dbs$standards_db
+#' )
+#' }
+#'
 #' @export
 load_peakguider_databases <- function(
     compound_db_path,

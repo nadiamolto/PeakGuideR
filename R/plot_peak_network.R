@@ -48,6 +48,20 @@ plot_peak_network <- function(
 #'
 #' @return A `visNetwork` htmlwidget.
 #'
+#' @examples
+#' \dontrun{
+#' data(example_pkm, package = "PeakGuideR")
+#'
+#' res <- run_peakguider_workflow(
+#'   pkm = example_pkm,
+#'   ion_mode = "pos",
+#'   matrix = "HCCA",
+#'   quiet = TRUE
+#' )
+#'
+#' plot_peak_network(res, min_score = 0.3)
+#' }
+#'
 #' @export
 plot_peak_network <- function(
     relation_table,

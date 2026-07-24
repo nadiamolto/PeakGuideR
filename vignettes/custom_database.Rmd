@@ -108,3 +108,18 @@ res <- run_peakguider_workflow(
 
 When using custom databases, users are responsible for ensuring that the
 database content and identifiers are appropriate for their analysis and comply with the licenses of the original data sources.
+
+### Identity resolution between `compound_db` and `standards_db`
+
+PeakGuideR links `compound_db` and `standards_db` candidates through a
+hierarchy of identifiers (InChIKey, then InChI, then SMILES, then a shared
+`HMDB`/`ChEBI` id), stopping at the first level that matches; see
+`resolve_cross_source_identity()`. A match on `MOLECULAR_FORMULA` /
+`MolecularFormula` alone is **never** treated as identity, since different
+compounds (for example structural isomers) commonly share a molecular
+formula. Custom databases that only provide a molecular formula will
+therefore never be fused into a single `"both"` candidate; they are instead
+kept as separate rows and cross-referenced through
+`possible_link_formula_only` for manual review. To get fused
+`"both"` candidates, include `StdInChIKey`/`InCHIKey` (preferred), `StdInChI`,
+or `SMILES` in the custom database.
