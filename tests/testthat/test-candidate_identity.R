@@ -136,7 +136,85 @@ test_that("duplicate compound_db rows sharing an InChIKey collapse before matchi
 
 
 test_that("compute_standard_adduct_recovery is NA without a standards_db match", {
-  expect_true(is.na(compute_standard_adduct_recovery(NA_character_, c("[M+H]+"))))
+  expect_true(is.na(compute_standard_adduct_recovery(
+    NA_character_, c("[M+H]+"), default_adducts("pos")$name
+  )))
+})
+
+
+test_that("compute_standard_adduct_recovery ignores structurally undetectable adduct forms", {
+  testable <- default_adducts("pos")$name
+
+  # standards_db lists a dimer and a sodium dimer alongside the one
+  # monomer form the pipeline can actually produce - only [M+H]+ should
+  # count towards the score, so full recovery of the testable part must
+  # read 1, not 1/3.
+  score_mixed <- compute_standard_adduct_recovery(
+    "[M+H]+;[2M+H]+;[2M+Na]+", c("[M+H]+"), testable
+  )
+  expect_equal(score_mixed, 1)
+
+  # standards_db lists only forms the pipeline cannot produce at all -
+  # this is an impossible comparison, not zero recovery.
+  score_untestable_only <- compute_standard_adduct_recovery(
+    "[2M+H]+;[2M+Na]+", c("[M+H]+"), testable
+  )
+  expect_true(is.na(score_untestable_only))
+
+  # every listed adduct is testable - behaviour must match the
+  # unfiltered calculation (no regression for the common case).
+  score_all_testable <- compute_standard_adduct_recovery(
+    "[M+H]+;[M+Na]+", c("[M+H]+"), testable
+  )
+  expect_equal(score_all_testable, 0.5)
+})
+
+
+test_that("standard_adduct_recovery_score is not deflated by dimer forms end-to-end", {
+  data("example_pkm", package = "PeakGuideR")
+
+  res <- run_peakguider_workflow(
+    pkm = example_pkm, ion_mode = "pos", matrix = "HCCA", quiet = TRUE
+  )
+
+  baseline <- res$candidate_annotations |>
+    dplyr::filter(standard_db_name == "PHENOL", !is.na(standard_adduct_recovery_score))
+  expect_true(nrow(baseline) > 0)
+  expect_true(all(baseline$standard_adduct_recovery_score == 1))
+  expect_equal(baseline$standard_db_adducts[1], "[M+H]+")
+
+  standards_db_dimer <- load_standards_adduct_library(quiet = TRUE)
+  phenol_row <- standards_db_dimer[standards_db_dimer$Master_List_NAME == "PHENOL" &
+                                      standards_db_dimer$adduct == "[M+H]+", ][1, ]
+  expect_equal(nrow(phenol_row), 1)
+
+  dimer_row <- phenol_row
+  dimer_row$adduct <- "[2M+H]+"
+  standards_db_dimer <- rbind(standards_db_dimer, dimer_row)
+
+  compound_db_default <- load_compound_mass_database(quiet = TRUE)
+
+  res_dimer <- build_candidate_annotations(
+    adduct_fam = res$adduct_families,
+    feature_summary = res$feature_summary,
+    pkm = example_pkm,
+    ion_mode = "pos",
+    matrix = "HCCA",
+    compound_db = compound_db_default,
+    standards_db = standards_db_dimer,
+    include_single_adduct = TRUE,
+    quiet = TRUE
+  )
+
+  with_dimer <- res_dimer |>
+    dplyr::filter(standard_db_name == "PHENOL", !is.na(standard_adduct_recovery_score))
+  expect_true(nrow(with_dimer) > 0)
+  listed_adducts <- unique(unlist(strsplit(with_dimer$standard_db_adducts, ";", fixed = TRUE)))
+  expect_setequal(listed_adducts, c("[M+H]+", "[2M+H]+"))
+
+  # With the bug, this would read 0.5 (1 of 2 listed forms) instead of 1
+  # (1 of 1 testable form) - the phantom dimer must not deflate it.
+  expect_true(all(with_dimer$standard_adduct_recovery_score == 1))
 })
 
 
@@ -202,11 +280,12 @@ test_that("isomeric standards_db compounds within tolerance are scored independe
   expect_setequal(matches$candidate_name, c("Isomer A", "Isomer B"))
 
   detected <- c("[M+H]+")
+  testable <- default_adducts("pos")$name
   rec_a <- compute_standard_adduct_recovery(
-    matches$standard_db_adducts[matches$candidate_name == "Isomer A"], detected
+    matches$standard_db_adducts[matches$candidate_name == "Isomer A"], detected, testable
   )
   rec_b <- compute_standard_adduct_recovery(
-    matches$standard_db_adducts[matches$candidate_name == "Isomer B"], detected
+    matches$standard_db_adducts[matches$candidate_name == "Isomer B"], detected, testable
   )
 
   expect_equal(rec_a, 0.5)

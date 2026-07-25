@@ -4,7 +4,11 @@
 \alias{compute_standard_adduct_recovery}
 \title{Standard-adduct recovery score for a single candidate row}
 \usage{
-compute_standard_adduct_recovery(standard_db_adducts, detected_adducts)
+compute_standard_adduct_recovery(
+  standard_db_adducts,
+  detected_adducts,
+  testable_adducts
+)
 }
 \arguments{
 \item{standard_db_adducts}{Character scalar: semicolon-separated adducts
@@ -13,6 +17,13 @@ candidate has no standards-library link.}
 
 \item{detected_adducts}{Character vector of adducts detected
 computationally for the same \code{neutral_mass_id}.}
+
+\item{testable_adducts}{Character vector of adduct names the detection
+pipeline is structurally capable of producing for this \code{ion_mode}
+(typically \code{default_adducts(ion_mode)$name}). \code{standard_db_adducts}
+entries outside this set (e.g. dimers, \verb{[M]+}) are excluded from both
+the numerator and the denominator before scoring. If the filtered set is
+empty, returns \code{NA_real_} (an impossible comparison, not zero recovery).}
 }
 \value{
 A single numeric value in the range 0 to 1, or \code{NA_real_}.
@@ -31,5 +42,18 @@ When several standard-library compounds (isomers) fall within tolerance of
 the same neutral mass, each is scored independently against the same
 \code{detected_adducts}, which can help discriminate between isomers based on
 which one's expected adducts were actually observed.
+
+\code{standards_db} can annotate adduct forms - most commonly dimers
+(\verb{[2M+H]+}, \verb{[2M+Na]+}, ...) and zero-shift \verb{[M]+} - that fall outside the
+single-feature, monomer-vs-neutral-mass paradigm PeakGuideR's own adduct
+detection uses (\code{adduct_candidates()}/\code{build_single_adduct_candidates()}
+always solve \code{neutral_mass = mz - adduct_mass} for one feature; they never
+pair two masses to reconstruct a dimer). Such forms can never appear in
+\code{detected_adducts}, regardless of how complete the actual recovery was, so
+counting them in the denominator would deflate the score for reasons
+unrelated to detection quality. \code{testable_adducts} restricts the
+comparison to adduct forms the detection pipeline could in principle have
+produced; entries of \code{standard_db_adducts} outside that set are dropped
+before scoring, not treated as missed.
 }
 \keyword{internal}

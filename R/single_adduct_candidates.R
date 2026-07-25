@@ -448,12 +448,14 @@ build_single_adduct_candidates <- function(
       relationship = "many-to-many"
     )
 
+  testable_adducts <- default_adducts(ion_mode)$name
+
   out$standard_adduct_recovery_score <- mapply(
     function(nmid, std_adducts) {
       if (is.na(std_adducts)) return(NA_real_)
       det <- detected_map[[as.character(nmid)]]
       if (is.null(det)) det <- character(0)
-      compute_standard_adduct_recovery(std_adducts, det)
+      compute_standard_adduct_recovery(std_adducts, det, testable_adducts)
     },
     out$neutral_mass_id, out$standard_db_adducts
   )

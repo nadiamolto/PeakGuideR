@@ -70,9 +70,15 @@ test_that("broad_db_only confidence_class reflects the number of supporting sign
 
 
 test_that("cross-database-linked confidence_class is split by standard-adduct recovery", {
-  # "Test Standard A"/"Test Standard B" each annotate 4 adducts in
-  # standards_db; the family for A recovers 3/4 (>= default
-  # recovery_threshold = 0.5) and the family for B recovers 1/4 (< 0.5).
+  # "Test Standard A"/"Test Standard B" each annotate 3 adducts in
+  # standards_db - restricted to names actually present in
+  # default_adducts("neg") ([M-H]-, [M+Cl]-, [M-H-H2O]-), since adducts
+  # standards_db lists that the detection pipeline could never produce
+  # (e.g. the "[M+Na-2H]-"/"[M+K-2H]-" this fixture used before) are
+  # excluded from standard_adduct_recovery_score's denominator and would
+  # not exercise the intended 3/3-vs-1/3 contrast below. The family for A
+  # recovers 3/3 (>= default recovery_threshold = 0.5) and the family for
+  # B recovers 1/3 (< 0.5).
   compound_db_test <- data.frame(
     Source = c("test_db", "test_db"),
     DB_ID = c("A1", "B1"),
@@ -87,19 +93,19 @@ test_that("cross-database-linked confidence_class is split by standard-adduct re
   )
 
   standards_db_test <- data.frame(
-    COMPOUND_ID = c(rep("S1", 4), rep("S2", 4)),
-    Master_List_NAME = c(rep("Test Standard A", 4), rep("Test Standard B", 4)),
+    COMPOUND_ID = c(rep("S1", 3), rep("S2", 3)),
+    Master_List_NAME = c(rep("Test Standard A", 3), rep("Test Standard B", 3)),
     POLARITY = "neg",
     matrix = "HCCA-DEA solid ionic matrix",
-    adduct = rep(c("[M-H]-", "[M+Na-2H]-", "[M+K-2H]-", "[M+Cl]-"), 2),
-    MOLECULAR_FORMULA = c(rep("C10H10O2", 4), rep("C15H20O3", 4)),
-    NEUTRAL_MONOISOTOPIC_MASS = c(rep(200.0000, 4), rep(300.0000, 4)),
+    adduct = rep(c("[M-H]-", "[M+Cl]-", "[M-H-H2O]-"), 2),
+    MOLECULAR_FORMULA = c(rep("C10H10O2", 3), rep("C15H20O3", 3)),
+    NEUTRAL_MONOISOTOPIC_MASS = c(rep(200.0000, 3), rep(300.0000, 3)),
     HMDB_clean = NA_character_,
     ChEBI = NA_character_,
     SMILES = NA_character_,
     InCHIKey = c(
-      rep("AAAAAAAAAAAAAA-UHFFFAOYSA-N", 4),
-      rep("BBBBBBBBBBBBBB-UHFFFAOYSA-N", 4)
+      rep("AAAAAAAAAAAAAA-UHFFFAOYSA-N", 3),
+      rep("BBBBBBBBBBBBBB-UHFFFAOYSA-N", 3)
     ),
     stringsAsFactors = FALSE
   )
@@ -117,7 +123,7 @@ test_that("cross-database-linked confidence_class is split by standard-adduct re
       family_id = c(1L, 1L, 1L, 2L),
       idx = c(1L, 2L, 3L, 4L),
       mz = c(201.007276, 222.989218, 238.963158, 301.007276),
-      adduct = c("[M-H]-", "[M+Na-2H]-", "[M+K-2H]-", "[M-H]-"),
+      adduct = c("[M-H]-", "[M+Cl]-", "[M-H-H2O]-", "[M-H]-"),
       stringsAsFactors = FALSE
     )
   )

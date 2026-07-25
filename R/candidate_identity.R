@@ -823,15 +823,34 @@ resolve_cross_source_identity <- function(
 #' `detected_adducts`, which can help discriminate between isomers based on
 #' which one's expected adducts were actually observed.
 #'
+#' `standards_db` can annotate adduct forms - most commonly dimers
+#' (`[2M+H]+`, `[2M+Na]+`, ...) and zero-shift `[M]+` - that fall outside the
+#' single-feature, monomer-vs-neutral-mass paradigm PeakGuideR's own adduct
+#' detection uses (`adduct_candidates()`/`build_single_adduct_candidates()`
+#' always solve `neutral_mass = mz - adduct_mass` for one feature; they never
+#' pair two masses to reconstruct a dimer). Such forms can never appear in
+#' `detected_adducts`, regardless of how complete the actual recovery was, so
+#' counting them in the denominator would deflate the score for reasons
+#' unrelated to detection quality. `testable_adducts` restricts the
+#' comparison to adduct forms the detection pipeline could in principle have
+#' produced; entries of `standard_db_adducts` outside that set are dropped
+#' before scoring, not treated as missed.
+#'
 #' @param standard_db_adducts Character scalar: semicolon-separated adducts
 #'   annotated in `standards_db` for this candidate compound, or `NA` if this
 #'   candidate has no standards-library link.
 #' @param detected_adducts Character vector of adducts detected
 #'   computationally for the same `neutral_mass_id`.
+#' @param testable_adducts Character vector of adduct names the detection
+#'   pipeline is structurally capable of producing for this `ion_mode`
+#'   (typically `default_adducts(ion_mode)$name`). `standard_db_adducts`
+#'   entries outside this set (e.g. dimers, `[M]+`) are excluded from both
+#'   the numerator and the denominator before scoring. If the filtered set is
+#'   empty, returns `NA_real_` (an impossible comparison, not zero recovery).
 #'
 #' @return A single numeric value in the range 0 to 1, or `NA_real_`.
 #' @keywords internal
-compute_standard_adduct_recovery <- function(standard_db_adducts, detected_adducts) {
+compute_standard_adduct_recovery <- function(standard_db_adducts, detected_adducts, testable_adducts) {
   if (is.na(standard_db_adducts) || !nzchar(standard_db_adducts)) {
     return(NA_real_)
   }
@@ -839,6 +858,7 @@ compute_standard_adduct_recovery <- function(standard_db_adducts, detected_adduc
   std_set <- strsplit(standard_db_adducts, ";", fixed = TRUE)[[1]]
   std_set <- unique(trimws(std_set))
   std_set <- std_set[nzchar(std_set)]
+  std_set <- intersect(std_set, testable_adducts)
 
   if (!length(std_set)) {
     return(NA_real_)

@@ -545,12 +545,14 @@ build_candidate_annotations <- function(
         ifelse(dplyr::coalesce(family_has_role_conflict, FALSE), 0.7, 1.0)
     )
 
+  testable_adducts <- default_adducts(ion_mode)$name
+
   combined$standard_adduct_recovery_score <- mapply(
     function(nmid, std_adducts) {
       if (is.na(std_adducts)) return(NA_real_)
       det <- detected_map[[as.character(nmid)]]
       if (is.null(det)) det <- character(0)
-      compute_standard_adduct_recovery(std_adducts, det)
+      compute_standard_adduct_recovery(std_adducts, det, testable_adducts)
     },
     combined$neutral_mass_id, combined$standard_db_adducts
   )
