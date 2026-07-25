@@ -9,7 +9,19 @@ reference is not negative evidence.
 When several standard-library compounds (isomers) fall within tolerance of
 the same neutral mass, each is scored independently against the same
 detected_adducts, which can help discriminate between isomers based on
-which one's expected adducts were actually observed."><meta property="og:description" content="Computes, for one standard-linked candidate compound, the fraction of its
+which one's expected adducts were actually observed.
+standards_db can annotate adduct forms - most commonly dimers
+([2M+H]+, [2M+Na]+, ...) and zero-shift [M]+ - that fall outside the
+single-feature, monomer-vs-neutral-mass paradigm PeakGuideR's own adduct
+detection uses (adduct_candidates()/build_single_adduct_candidates()
+always solve neutral_mass = mz - adduct_mass for one feature; they never
+pair two masses to reconstruct a dimer). Such forms can never appear in
+detected_adducts, regardless of how complete the actual recovery was, so
+counting them in the denominator would deflate the score for reasons
+unrelated to detection quality. testable_adducts restricts the
+comparison to adduct forms the detection pipeline could in principle have
+produced; entries of standard_db_adducts outside that set are dropped
+before scoring, not treated as missed."><meta property="og:description" content="Computes, for one standard-linked candidate compound, the fraction of its
 standards_db-annotated adducts that were also detected computationally
 for the same neutral mass:
 $$score = |detected \cap standard| / |standard|$$
@@ -19,7 +31,19 @@ reference is not negative evidence.
 When several standard-library compounds (isomers) fall within tolerance of
 the same neutral mass, each is scored independently against the same
 detected_adducts, which can help discriminate between isomers based on
-which one's expected adducts were actually observed."></head><body>
+which one's expected adducts were actually observed.
+standards_db can annotate adduct forms - most commonly dimers
+([2M+H]+, [2M+Na]+, ...) and zero-shift [M]+ - that fall outside the
+single-feature, monomer-vs-neutral-mass paradigm PeakGuideR's own adduct
+detection uses (adduct_candidates()/build_single_adduct_candidates()
+always solve neutral_mass = mz - adduct_mass for one feature; they never
+pair two masses to reconstruct a dimer). Such forms can never appear in
+detected_adducts, regardless of how complete the actual recovery was, so
+counting them in the denominator would deflate the score for reasons
+unrelated to detection quality. testable_adducts restricts the
+comparison to adduct forms the detection pipeline could in principle have
+produced; entries of standard_db_adducts outside that set are dropped
+before scoring, not treated as missed."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -70,11 +94,27 @@ reference is not negative evidence.</p>
 the same neutral mass, each is scored independently against the same
 <code>detected_adducts</code>, which can help discriminate between isomers based on
 which one's expected adducts were actually observed.</p>
+<p><code>standards_db</code> can annotate adduct forms - most commonly dimers
+(<code>[2M+H]+</code>, <code>[2M+Na]+</code>, ...) and zero-shift <code>[M]+</code> - that fall outside the
+single-feature, monomer-vs-neutral-mass paradigm PeakGuideR's own adduct
+detection uses (<code><a href="adduct_candidates.html">adduct_candidates()</a></code>/<code><a href="build_single_adduct_candidates.html">build_single_adduct_candidates()</a></code>
+always solve <code>neutral_mass = mz - adduct_mass</code> for one feature; they never
+pair two masses to reconstruct a dimer). Such forms can never appear in
+<code>detected_adducts</code>, regardless of how complete the actual recovery was, so
+counting them in the denominator would deflate the score for reasons
+unrelated to detection quality. <code>testable_adducts</code> restricts the
+comparison to adduct forms the detection pipeline could in principle have
+produced; entries of <code>standard_db_adducts</code> outside that set are dropped
+before scoring, not treated as missed.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">compute_standard_adduct_recovery</span><span class="op">(</span><span class="va">standard_db_adducts</span>, <span class="va">detected_adducts</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">compute_standard_adduct_recovery</span><span class="op">(</span></span>
+<span>  <span class="va">standard_db_adducts</span>,</span>
+<span>  <span class="va">detected_adducts</span>,</span>
+<span>  <span class="va">testable_adducts</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -90,6 +130,15 @@ candidate has no standards-library link.</p></dd>
 <dt id="arg-detected-adducts">detected_adducts<a class="anchor" aria-label="anchor" href="#arg-detected-adducts"></a></dt>
 <dd><p>Character vector of adducts detected
 computationally for the same <code>neutral_mass_id</code>.</p></dd>
+
+
+<dt id="arg-testable-adducts">testable_adducts<a class="anchor" aria-label="anchor" href="#arg-testable-adducts"></a></dt>
+<dd><p>Character vector of adduct names the detection
+pipeline is structurally capable of producing for this <code>ion_mode</code>
+(typically <code>default_adducts(ion_mode)$name</code>). <code>standard_db_adducts</code>
+entries outside this set (e.g. dimers, <code>[M]+</code>) are excluded from both
+the numerator and the denominator before scoring. If the filtered set is
+empty, returns <code>NA_real_</code> (an impossible comparison, not zero recovery).</p></dd>
 
 </dl></div>
     <div class="section level2">
