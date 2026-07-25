@@ -174,7 +174,7 @@ build_feature_summary <- function(
         collapse = ";"
       ),
       eips_partner_idx = paste(sort(unique(to_idx)), collapse = ";"),
-      eips_score = max(evidence_score, na.rm = TRUE),
+      eips_score = if (any(is.finite(evidence_score))) max(evidence_score, na.rm = TRUE) else NA_real_,
       .groups = "drop"
     )
 
@@ -230,7 +230,7 @@ build_feature_summary <- function(
         collapse = ";"
       ),
       n_adduct_roles = dplyr::n_distinct(adduct_role),
-      adduct_best_score = max(adduct_score, na.rm = TRUE),
+      adduct_best_score = if (any(is.finite(adduct_score))) max(adduct_score, na.rm = TRUE) else NA_real_,
       adduct_role_status = dplyr::case_when(
         dplyr::n_distinct(adduct_role) == 1 ~ "single",
         dplyr::n_distinct(adduct_role) > 1 ~ "multiple",

@@ -151,7 +151,21 @@ build_relation_table <- function(
   }
 
   if (!length(edges)) {
-    return(dplyr::tibble())
+    return(dplyr::tibble(
+      from_idx = integer(0),
+      to_idx = integer(0),
+      from_mz = numeric(0),
+      to_mz = numeric(0),
+      relation_type = character(0),
+      evidence_type = character(0),
+      evidence_score = numeric(0),
+      score_type = character(0),
+      is_valid = logical(0),
+      group_id = integer(0),
+      from_role = character(0),
+      to_role = character(0),
+      label = character(0)
+    ))
   }
 
   out <- dplyr::bind_rows(edges) |>

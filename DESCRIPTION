@@ -28,6 +28,7 @@ Imports:
 Suggests:
     devtools,
     Cardinal,
+    BiocParallel,
     mgcv,
     purrr,
     usethis,

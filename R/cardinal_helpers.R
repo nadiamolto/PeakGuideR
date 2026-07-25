@@ -105,6 +105,25 @@ cardinal_to_peakmatrix <- function(
   } else {
     M <- try(as.matrix(intens_layer), silent = TRUE)
     if (inherits(M, "try-error")) {
+      # Some S4 classes used by Cardinal's "processed"/peak-picked
+      # imaging objects (e.g. matter::sparse_mat) register an as.matrix()
+      # S4 method, but standardGeneric() dispatch for that method is only
+      # visible to callers whose namespace imports the defining package.
+      # Cardinal/matter are optional dependencies (Suggests, guarded by
+      # requireNamespace() above), so PeakGuideR's own namespace never
+      # imports them and the implicit dispatch above can fail even though
+      # the method exists and is registered globally. Fall back to an
+      # explicit lookup in the S4 method table, which does not depend on
+      # the caller's namespace imports.
+      m <- tryCatch(
+        methods::selectMethod("as.matrix", class(intens_layer), optional = TRUE),
+        error = function(e) NULL
+      )
+      if (!is.null(m)) {
+        M <- try(m(intens_layer), silent = TRUE)
+      }
+    }
+    if (inherits(M, "try-error")) {
       stop("Could not coerce selected imageData layer to matrix.", call. = FALSE)
     }
   }
