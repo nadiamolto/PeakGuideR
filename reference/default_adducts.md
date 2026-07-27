@@ -38,6 +38,8 @@ default_adducts("neg")
 #> 8      [M-H]-  neg  -1.007276    1
 #> 9     [M+Cl]-  neg  34.968853    1
 #> 10 [M-H-H2O]-  neg -19.017841    1
+#> 11 [M+Na-2H]-  neg  20.974666    1
+#> 12  [M+K-2H]-  neg  36.948606    1
 default_adducts(NULL)
 #>          name mode       mass sign
 #> 1      [M+H]+  pos   1.007276    1
@@ -50,4 +52,6 @@ default_adducts(NULL)
 #> 8      [M-H]-  neg  -1.007276    1
 #> 9     [M+Cl]-  neg  34.968853    1
 #> 10 [M-H-H2O]-  neg -19.017841    1
+#> 11 [M+Na-2H]-  neg  20.974666    1
+#> 12  [M+K-2H]-  neg  36.948606    1
 ```
