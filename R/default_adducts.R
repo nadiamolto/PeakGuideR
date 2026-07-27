@@ -32,12 +32,14 @@ default_adducts <- function(ion_mode = c("pos", "neg")) {
       # NEGATIVE MODE
       "[M-H]-",
       "[M+Cl]-",
-      "[M-H-H2O]-"
+      "[M-H-H2O]-",
+      "[M+Na-2H]-",
+      "[M+K-2H]-"
     ),
 
     mode = c(
       rep("pos", 7),
-      rep("neg", 3)
+      rep("neg", 5)
     ),
 
     # NET m/z shift (Da)
@@ -54,11 +56,13 @@ default_adducts <- function(ion_mode = c("pos", "neg")) {
       # neg
       -1.007276,   # [M-H]-
       +34.968853,  # [M+Cl]-
-      -19.017841   # [M-H-H2O]-
+      -19.017841,  # [M-H-H2O]-
+      +20.974666,  # [M+Na-2H]-
+      +36.948606   # [M+K-2H]-
     ),
 
     # ALWAYS +1
-    sign = rep(+1, 10),
+    sign = rep(+1, 12),
 
     stringsAsFactors = FALSE
   )
