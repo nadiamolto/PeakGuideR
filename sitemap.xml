@@ -41,6 +41,9 @@
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/match_compound_db_by_mass.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/match_standards_by_mass.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/parse_formula.html</loc></url>
+<url><loc>https://nadiamolto.github.io/PeakGuideR/reference/plot_adduct_family.html</loc></url>
+<url><loc>https://nadiamolto.github.io/PeakGuideR/reference/plot_ion_image.html</loc></url>
+<url><loc>https://nadiamolto.github.io/PeakGuideR/reference/plot_isotope_pair.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/plot_peak_network.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/ppm_error_to_score.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/preprocess_xy.html</loc></url>

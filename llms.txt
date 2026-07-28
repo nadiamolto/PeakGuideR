@@ -491,6 +491,12 @@ Zenodo database record: `https://doi.org/10.5281/zenodo.20705395`
 - [`match_standards_by_mass()`](https://nadiamolto.github.io/PeakGuideR/reference/match_standards_by_mass.md)
   : Match inferred neutral masses against the standard-adduct library by
   mass
+- [`plot_adduct_family()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_adduct_family.md)
+  : Plot all members of an adduct family
+- [`plot_ion_image()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_ion_image.md)
+  : Plot an ion image
+- [`plot_isotope_pair()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_isotope_pair.md)
+  : Plot an isotope pair (and, when available, its M+2 satellite)
 - [`plot_peak_network()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_peak_network.md)
   : Plot a peak evidence network
 - [`print(`*`<peakguider_workflow>`*`)`](https://nadiamolto.github.io/PeakGuideR/reference/print.peakguider_workflow.md)
