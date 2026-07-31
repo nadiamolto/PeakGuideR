@@ -20,9 +20,31 @@ A numeric vector (or scalar) of priority scores in the range 0 to
 }
 \description{
 Combines per-candidate evidence scores into a single \code{priority_score} as a
-weighted mean, excluding \code{NA} components from the calculation and
-renormalizing the remaining weights to sum to 1. \code{NA} components are never
-treated as \code{0}.
+weighted mean. \code{NA} components are handled in one of two ways depending on
+what their absence actually means:
+\itemize{
+\item \code{standard_adduct_recovery_score} and \code{eips_evidence_score} are only
+ever evaluable under a structural precondition (standards-library
+membership, and the \code{iso_morphology_candidates()}/C13 gating in
+\code{\link[=eips_score]{eips_score()}}, respectively) - \code{NA} there means the check did not
+apply, not that it was made and failed. These two are excluded from
+the calculation and the remaining weights renormalized to sum to 1,
+exactly as before.
+\item \code{mass_error_score}, \code{adduct_spatial_score},
+\code{isotope_evidence_score} and \code{family_coherence_score} are evaluable
+for essentially any candidate (a second adduct form, a corroborating
+family member, or a C13 isotope pattern could in principle exist for
+any organic compound with carbon). \code{NA} there is real negative
+evidence - it was looked for and not found - so it is treated as a
+literal \code{0} and its weight stays in the average. \code{mass_error_score} is
+included in this group only for conceptual consistency; in practice it
+is essentially never \code{NA}, since a candidate only reaches this
+function after already matching on mass.
+}
+This means a \code{broad_db_only} candidate supported only by mass (no isotope,
+adduct, family or EIPS evidence) no longer reaches a \code{priority_score} near
+its raw \code{mass_error_score} - the three zero-filled evidence components
+actively pull it down instead of dropping out of the average.
 }
 \examples{
 scores <- data.frame(

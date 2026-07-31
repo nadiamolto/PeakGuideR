@@ -218,9 +218,14 @@ test_that("standard_adduct_recovery_score is not deflated by dimer forms end-to-
 })
 
 
-test_that("standard_adduct_recovery_score = NA is excluded from priority_score, not treated as 0", {
+test_that("standard_adduct_recovery_score/eips_evidence_score = NA are excluded from priority_score, not treated as 0", {
   weights <- default_priority_weights()
 
+  # isotope_evidence_score is left NA on purpose: unlike
+  # standard_adduct_recovery_score/eips_evidence_score, it is universally
+  # evaluable evidence, so it is zero-filled (kept in the weighted average)
+  # rather than excluded - this test isolates the two components that are
+  # still excluded/renormalized.
   scores_no_std <- data.frame(
     mass_error_score = 0.9,
     adduct_spatial_score = 0.8,
@@ -233,10 +238,12 @@ test_that("standard_adduct_recovery_score = NA is excluded from priority_score, 
   score_na <- compute_priority_score(scores_no_std, weights)
 
   expected_weight_sum <- weights["mass_error_score"] +
-    weights["adduct_spatial_score"] + weights["family_coherence_score"]
+    weights["adduct_spatial_score"] + weights["isotope_evidence_score"] +
+    weights["family_coherence_score"]
   expected_score <- (
     0.9 * weights["mass_error_score"] +
       0.8 * weights["adduct_spatial_score"] +
+      0 * weights["isotope_evidence_score"] +
       0.7 * weights["family_coherence_score"]
   ) / expected_weight_sum
 
@@ -244,9 +251,44 @@ test_that("standard_adduct_recovery_score = NA is excluded from priority_score, 
 
   scores_zero <- scores_no_std
   scores_zero$standard_adduct_recovery_score <- 0
+  scores_zero$eips_evidence_score <- 0
   score_zero <- compute_priority_score(scores_zero, weights)
 
   expect_false(isTRUE(all.equal(unname(score_na), unname(score_zero))))
+})
+
+
+test_that("mass_error_score/adduct_spatial_score/isotope_evidence_score/family_coherence_score = NA are zero-filled in priority_score, not excluded", {
+  weights <- default_priority_weights()
+
+  scores_mass_only <- data.frame(
+    mass_error_score = 0.9,
+    adduct_spatial_score = NA_real_,
+    isotope_evidence_score = NA_real_,
+    eips_evidence_score = NA_real_,
+    standard_adduct_recovery_score = NA_real_,
+    family_coherence_score = NA_real_
+  )
+
+  score_zero_filled <- compute_priority_score(scores_mass_only, weights)
+
+  # Only standard_adduct_recovery_score/eips_evidence_score are excluded and
+  # renormalized away; the other three NA components are treated as 0 and
+  # keep their weight in the denominator.
+  expected_weight_sum <- weights["mass_error_score"] +
+    weights["adduct_spatial_score"] + weights["isotope_evidence_score"] +
+    weights["family_coherence_score"]
+  expected_score <- (0.9 * weights["mass_error_score"]) / expected_weight_sum
+
+  expect_equal(unname(score_zero_filled), unname(expected_score), tolerance = 1e-8)
+
+  # Old behaviour would have excluded every NA component and renormalized
+  # down to mass_error_score alone, giving a score equal to mass_error_score
+  # itself - i.e. a mass-only candidate could reach ~0.9. The new score must
+  # be substantially lower, since three universally-evaluable evidence
+  # components are now real negative evidence rather than inapplicable.
+  old_style_score <- 0.9
+  expect_lt(unname(score_zero_filled), old_style_score - 0.5)
 })
 
 
