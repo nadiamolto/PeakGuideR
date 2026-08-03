@@ -404,3 +404,263 @@ test_that("ambiguous_isomeric flags near-tied top candidates within a neutral_ma
   expect_equal(nrow(unique_row), 1)
   expect_true(all(!unique_row$ambiguous_isomeric))
 })
+
+
+single_adduct_isolated_fixture <- function(compound_db_test, mz, intensity) {
+  adduct_fam_empty <- list(
+    family_summary = data.frame(
+      family_id = integer(0), neutral_mass_consensus = numeric(0),
+      mean_score_adduct = numeric(0), median_score_adduct = numeric(0),
+      has_role_conflict = logical(0)
+    ),
+    family_members = data.frame(
+      family_id = integer(0), idx = integer(0), mz = numeric(0), adduct = character(0),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  feature_summary_test <- data.frame(
+    idx = seq_along(mz),
+    mz = mz,
+    is_c13_m0 = FALSE, c13_score = NA_real_, has_c13_m2_support = FALSE, c13_m2_score = NA_real_,
+    has_eips = FALSE, eips_elements = NA_character_, eips_score = NA_real_,
+    has_adduct_family = FALSE, is_c13_m1 = FALSE, is_c13_m2 = FALSE, is_eips_isotope = FALSE,
+    stringsAsFactors = FALSE
+  )
+
+  pkm_test <- list(mass = mz, intensity = intensity)
+
+  build_candidate_annotations(
+    adduct_fam = adduct_fam_empty,
+    feature_summary = feature_summary_test,
+    pkm = pkm_test,
+    compound_db = compound_db_test,
+    standards_db = NULL,
+    ion_mode = "pos",
+    matrix = NULL,
+    ppm_tol = 10,
+    neutral_cluster_ppm = 10,
+    top_n = NULL,
+    include_single_adduct = TRUE,
+    quiet = TRUE
+  )
+}
+
+
+test_that("ambiguous_isomeric is not falsely triggered by two single_adduct_isolated rows of the same identity", {
+  # Reproduces the Toufik brain dataset pattern: [M+Na]+ and [M+K]+ of the
+  # same compound are each inferred independently, without ever forming a
+  # shared adduct family. Both hypotheses cluster into the same
+  # neutral_mass_id and both resolve to the same compound_db candidate, so
+  # they carry an identical priority_score - a naive row-vs-row comparison
+  # reads that as a tied top-1/top-2 and flags ambiguity where there is only
+  # one identity.
+  compound_db_test <- data.frame(
+    Source = "test_db",
+    DB_ID = "C1",
+    Name = "Test Compound",
+    MolecularFormula = "C10H20O2",
+    MonoisotopicMass = 200.000000,
+    StdInChI = NA_character_,
+    StdInChIKey = "AAAAAAAAAAAAAA-BBBBBBBBBB-A",
+    SMILES = NA_character_,
+    Kegg = NA_character_,
+    stringsAsFactors = FALSE
+  )
+
+  mz <- c(200.000000 + 22.989218, 200.000000 + 38.963158) # [M+Na]+, [M+K]+
+  intensity <- matrix(
+    c(10, 12, 9, 11, 13, 8, 14, 10, 9, 12,
+      11, 13, 8, 12, 14, 9, 13, 11, 8, 13),
+    nrow = 10, ncol = 2
+  )
+
+  ann <- single_adduct_isolated_fixture(compound_db_test, mz, intensity)
+
+  dup <- ann[!is.na(ann$broad_db_name) & ann$broad_db_name == "Test Compound", ]
+  expect_equal(nrow(dup), 2)
+  expect_setequal(dup$hypothesis_origin, "single_adduct_isolated")
+  expect_equal(length(unique(dup$neutral_mass_id)), 1)
+  expect_false(any(dup$ambiguous_isomeric))
+})
+
+
+test_that("ambiguous_isomeric still flags genuinely competing identities under single_adduct_isolated", {
+  # Same two-adduct, no-family setup as above, but with two distinct
+  # compound_db entries at the same mass instead of one: each identity is
+  # still duplicated across its own [M+Na]+/[M+K]+ rows, and that
+  # duplication must not mask the real ambiguity between Identity A and
+  # Identity B.
+  compound_db_test <- data.frame(
+    Source = c("test_db", "test_db"),
+    DB_ID = c("A1", "B1"),
+    Name = c("Identity A", "Identity B"),
+    MolecularFormula = c("C10H20O2", "C10H20O2"),
+    MonoisotopicMass = c(200.000000, 200.000000),
+    StdInChI = NA_character_,
+    StdInChIKey = c("AAAAAAAAAAAAAA-BBBBBBBBBB-A", "CCCCCCCCCCCCCC-DDDDDDDDDD-C"),
+    SMILES = NA_character_,
+    Kegg = NA_character_,
+    stringsAsFactors = FALSE
+  )
+
+  mz <- c(200.000000 + 22.989218, 200.000000 + 38.963158) # [M+Na]+, [M+K]+
+  intensity <- matrix(
+    c(10, 12, 9, 11, 13, 8, 14, 10, 9, 12,
+      11, 13, 8, 12, 14, 9, 13, 11, 8, 13),
+    nrow = 10, ncol = 2
+  )
+
+  ann <- single_adduct_isolated_fixture(compound_db_test, mz, intensity)
+
+  sub <- ann[!is.na(ann$broad_db_name), ]
+  expect_equal(nrow(sub), 4)
+  expect_equal(length(unique(sub$neutral_mass_id)), 1)
+  expect_true(all(sub$ambiguous_isomeric))
+})
+
+
+test_that("ambiguous_isomeric compares a 3-row identity against the next distinct identity, not its own rows", {
+  # Identity A is recovered via three independent single-adduct hypotheses
+  # ([M+H]+, [M+Na]+, [M+K]+) that never merged into a family, so it
+  # occupies three rows of its own for this neutral_mass_id. Identity B
+  # occupies another three rows at a slightly worse mass error. Under the
+  # old row-vs-row comparison, Identity A's own top two rows are tied
+  # (identical priority_score), which alone was enough to flag the mass as
+  # ambiguous regardless of Identity B. After collapsing by identity, the
+  # comparison is A's best row vs B's best row, with a gap well above
+  # ambiguity_gap - not ambiguous.
+  compound_db_test <- data.frame(
+    Source = c("test_db", "test_db"),
+    DB_ID = c("A1", "B1"),
+    Name = c("Identity A", "Identity B"),
+    MolecularFormula = c("C10H20O2", "C10H20O2"),
+    MonoisotopicMass = c(200.000000, 200.001600),
+    StdInChI = NA_character_,
+    StdInChIKey = c("AAAAAAAAAAAAAA-BBBBBBBBBB-A", "CCCCCCCCCCCCCC-DDDDDDDDDD-C"),
+    SMILES = NA_character_,
+    Kegg = NA_character_,
+    stringsAsFactors = FALSE
+  )
+
+  mz <- c(
+    200.000000 + 1.007276, # [M+H]+
+    200.000000 + 22.989218, # [M+Na]+
+    200.000000 + 38.963158 # [M+K]+
+  )
+  intensity <- matrix(
+    c(10, 12, 9, 11, 13, 8, 14, 10, 9, 12,
+      11, 13, 8, 12, 14, 9, 13, 11, 8, 13,
+      9, 11, 10, 13, 12, 8, 11, 10, 9, 14),
+    nrow = 10, ncol = 3
+  )
+
+  ann <- single_adduct_isolated_fixture(compound_db_test, mz, intensity)
+
+  identity_a <- ann[!is.na(ann$broad_db_name) & ann$broad_db_name == "Identity A", ]
+  identity_b <- ann[!is.na(ann$broad_db_name) & ann$broad_db_name == "Identity B", ]
+  expect_equal(nrow(identity_a), 3)
+  expect_equal(nrow(identity_b), 3)
+  expect_equal(length(unique(c(identity_a$neutral_mass_id, identity_b$neutral_mass_id))), 1)
+
+  # sanity check: Identity A's own rows are tied at the top, so a
+  # row-vs-row comparison (the old behaviour) would flag this ambiguous
+  # regardless of Identity B.
+  expect_equal(sum(identity_a$priority_score == max(identity_a$priority_score)), 2)
+
+  expect_false(any(identity_a$ambiguous_isomeric))
+  expect_false(any(identity_b$ambiguous_isomeric))
+})
+
+
+test_that("expand_compound_candidates_for_standards() recovers a top_n-truncated standard-linked candidate", {
+  # 5 compound_db isobars crowd the same mass window; "Isobar 4" is the one
+  # that shares an InChIKey with a standards_db compound, but it has the
+  # worst (4th-ranked) ppm error of the five, so a plain top_n = 3 cut
+  # truncates it away before resolve_cross_source_identity() ever sees it.
+  compound_db_test <- data.frame(
+    Source = rep("test_db", 5),
+    DB_ID = c("C1", "C2", "C3", "C4", "C5"),
+    Name = c("Isobar 1", "Isobar 2", "Isobar 3", "Isobar 4", "Isobar 5"),
+    MolecularFormula = rep("C5H10O2", 5),
+    MonoisotopicMass = c(100.000000, 100.000100, 100.000200, 100.000300, 100.000400),
+    StdInChI = NA_character_,
+    StdInChIKey = c(NA, NA, NA, "STDSTDSTDSTDST-UHFFFAOYSA-S", NA),
+    SMILES = NA_character_,
+    Kegg = NA_character_,
+    stringsAsFactors = FALSE
+  )
+
+  standards_db_test <- data.frame(
+    COMPOUND_ID = "S1",
+    Master_List_NAME = "Isobar 4 standard",
+    POLARITY = "pos",
+    matrix = "HCCA-DEA solid ionic matrix",
+    adduct = "[M+H]+",
+    MOLECULAR_FORMULA = "C5H10O2",
+    NEUTRAL_MONOISOTOPIC_MASS = 100.000300,
+    HMDB_clean = NA_character_,
+    ChEBI = NA_character_,
+    SMILES = NA_character_,
+    InCHIKey = "STDSTDSTDSTDST-UHFFFAOYSA-S",
+    stringsAsFactors = FALSE
+  )
+
+  neutral_masses <- data.frame(neutral_mass_id = 1L, neutral_mass_consensus = 100.000000)
+
+  compound_candidates <- match_compound_db_by_mass(
+    neutral_masses, compound_db_test, ppm_tol = 10, top_n = 3
+  )
+  expect_equal(nrow(compound_candidates), 3)
+  expect_false("Isobar 4" %in% compound_candidates$candidate_name)
+
+  standard_candidates <- match_standards_by_mass(
+    neutral_masses, standards_db_test, ion_mode = "pos", matrix = "HCCA", ppm_tol = 10
+  )
+  expect_equal(nrow(standard_candidates), 1)
+
+  expanded <- expand_compound_candidates_for_standards(
+    compound_candidates, standard_candidates, neutral_masses, compound_db_test, 10
+  )
+  expect_true("Isobar 4" %in% expanded$candidate_name)
+
+  resolved <- resolve_cross_source_identity(expanded, standard_candidates)
+  isobar4_row <- resolved[resolved$broad_db_name %in% "Isobar 4", ]
+  expect_equal(nrow(isobar4_row), 1)
+  expect_equal(isobar4_row$source, "both")
+  expect_equal(isobar4_row$standard_db_name, "Isobar 4 standard")
+})
+
+
+test_that("expand_compound_candidates_for_standards() leaves top_n untouched when no standard matches", {
+  compound_db_test <- data.frame(
+    Source = rep("test_db", 5),
+    DB_ID = c("C1", "C2", "C3", "C4", "C5"),
+    Name = c("Isobar 1", "Isobar 2", "Isobar 3", "Isobar 4", "Isobar 5"),
+    MolecularFormula = rep("C5H10O2", 5),
+    MonoisotopicMass = c(100.000000, 100.000100, 100.000200, 100.000300, 100.000400),
+    StdInChI = NA_character_,
+    StdInChIKey = NA_character_,
+    SMILES = NA_character_,
+    Kegg = NA_character_,
+    stringsAsFactors = FALSE
+  )
+
+  neutral_masses <- data.frame(neutral_mass_id = 1L, neutral_mass_consensus = 100.000000)
+
+  compound_candidates <- match_compound_db_by_mass(
+    neutral_masses, compound_db_test, ppm_tol = 10, top_n = 3
+  )
+  expect_equal(nrow(compound_candidates), 3)
+
+  expanded_no_std <- expand_compound_candidates_for_standards(
+    compound_candidates, NULL, neutral_masses, compound_db_test, 10
+  )
+  expect_equal(expanded_no_std, compound_candidates)
+
+  standard_candidates_empty <- compound_candidates[0, ]
+  expanded_empty_std <- expand_compound_candidates_for_standards(
+    compound_candidates, standard_candidates_empty, neutral_masses, compound_db_test, 10
+  )
+  expect_equal(expanded_empty_std, compound_candidates)
+})

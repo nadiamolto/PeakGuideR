@@ -66,8 +66,13 @@ treated as \code{0}) required for \code{confidence_class = "cross_db_linked_addu
 Reuses the same threshold as the \code{adduct_min_score} workflow parameter.}
 
 \item{ambiguity_gap}{Minimum \code{priority_score} gap between the top-1 and
-top-2 candidate of the same \code{neutral_mass_id} required to \emph{not} flag
-\code{ambiguous_isomeric}.}
+top-2 \emph{chemical identity} of the same \code{neutral_mass_id} required to
+\emph{not} flag \code{ambiguous_isomeric}. Rows are first collapsed by resolved
+identity (see \code{\link[=resolve_identity_key]{resolve_identity_key()}}) and only their best
+\code{priority_score} kept, so two rows describing the same compound - most
+commonly two \code{single_adduct_isolated} hypotheses for adducts of one
+compound that never merged into a shared family - never count as a
+second, competing candidate.}
 
 \item{include_single_adduct}{Logical. If \code{FALSE}, or if \code{pkm} is \code{NULL},
 single-adduct hypotheses are not computed.}

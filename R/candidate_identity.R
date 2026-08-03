@@ -318,7 +318,15 @@ match_standards_by_mass <- function(
 #' @param ppm_tol PPM tolerance for neutral-mass matching.
 #' @param top_n Maximum number of candidates kept per `neutral_mass_id`,
 #'   ranked by ascending ppm error. Use `NULL` to retain all candidates
-#'   within `ppm_tol`.
+#'   within `ppm_tol`. This cut is blind to `standards_db`: in a mass window
+#'   crowded with more than `top_n` isomers/isobars, the one candidate that
+#'   would have linked to a standards-library compound can be truncated away
+#'   before [resolve_cross_source_identity()] ever sees it.
+#'   [build_candidate_annotations()] and [build_single_adduct_candidates()]
+#'   compensate for this explicitly, via
+#'   [expand_compound_candidates_for_standards()], for the `neutral_mass_id`
+#'   values where a standard was actually found - this function itself
+#'   applies `top_n` unconditionally.
 #'
 #' @return A data.frame with one row per `neutral_mass_id` and compound
 #'   candidate: `neutral_mass_id`, `candidate_source`, `candidate_db_id`,
@@ -444,6 +452,79 @@ match_compound_db_by_mass <- function(
       candidate_smiles = SMILES,
       candidate_kegg = Kegg
     )
+}
+
+
+#' Recover compound_db candidates that top_n truncated away from a
+#' standard-linked neutral mass
+#'
+#' @description
+#' `top_n` in [match_compound_db_by_mass()] is a blind cut by ascending
+#' `candidate_ppm_error`: it has no visibility into `standards_db`, so a
+#' candidate that would otherwise resolve to `source == "both"` in
+#' [resolve_cross_source_identity()] can be truncated away simply because a
+#' common formula/isobar crowds the same mass window with more than
+#' `top_n` `compound_db` entries within tolerance - the standards-library
+#' match is exactly the strongest evidence the candidate could have, and it
+#' never gets the chance to compete.
+#'
+#' This function undoes that for the (typically very small) subset of
+#' `neutral_mass_id` values where `standard_candidates` found at least one
+#' hit: it re-runs [match_compound_db_by_mass()] for those masses only,
+#' with `top_n = NULL` (no cut), and unions the recovered rows into
+#' `compound_candidates`, deduplicating on `neutral_mass_id` +
+#' `compound_identity_id` so a candidate that already survived the
+#' original cut is not duplicated. `neutral_mass_id` values with no
+#' standard-library hit are untouched - `top_n` still applies to the
+#' overwhelming majority of masses exactly as before, so this has no
+#' effect on runtime or output size outside the small subset where a
+#' standard is actually in play.
+#'
+#' @param compound_candidates Output of [match_compound_db_by_mass()],
+#'   possibly truncated by `top_n`.
+#' @param standard_candidates Output of [match_standards_by_mass()], or
+#'   `NULL`/empty if standard-adduct support is not being used.
+#' @param neutral_for_matching The same data.frame (`neutral_mass_id`,
+#'   `neutral_mass_consensus`) passed to [match_compound_db_by_mass()] to
+#'   produce `compound_candidates`.
+#' @param compound_db The same `compound_db` passed to
+#'   [match_compound_db_by_mass()].
+#' @param ppm_tol The same `ppm_tol` passed to [match_compound_db_by_mass()].
+#'
+#' @return `compound_candidates`, with any `compound_db` candidates that
+#'   `top_n` had excluded for a standard-linked `neutral_mass_id` added
+#'   back in.
+#' @keywords internal
+expand_compound_candidates_for_standards <- function(
+    compound_candidates,
+    standard_candidates,
+    neutral_for_matching,
+    compound_db,
+    ppm_tol
+) {
+  if (is.null(standard_candidates) || !nrow(standard_candidates)) {
+    return(compound_candidates)
+  }
+
+  standard_nm_ids <- unique(standard_candidates$neutral_mass_id)
+  neutral_for_standards <- neutral_for_matching |>
+    dplyr::filter(neutral_mass_id %in% standard_nm_ids)
+
+  if (!nrow(neutral_for_standards)) {
+    return(compound_candidates)
+  }
+
+  full_recall <- match_compound_db_by_mass(
+    neutral_for_standards, compound_db, ppm_tol = ppm_tol, top_n = NULL
+  )
+
+  if (!nrow(full_recall)) {
+    return(compound_candidates)
+  }
+
+  dplyr::bind_rows(compound_candidates, full_recall) |>
+    dplyr::distinct(neutral_mass_id, compound_identity_id, .keep_all = TRUE) |>
+    dplyr::arrange(neutral_mass_id, candidate_ppm_error)
 }
 
 
@@ -803,6 +884,72 @@ resolve_cross_source_identity <- function(
 
   dplyr::bind_rows(both_rows, broad_only, standards_only) |>
     dplyr::arrange(neutral_mass_id, candidate_ppm_error)
+}
+
+
+#' Resolve a per-row chemical identity key for isomer-ambiguity detection
+#'
+#' @description
+#' Collapses candidate rows that refer to the same chemical identity before
+#' `ambiguous_isomeric` is derived from their `priority_score`s, so that two
+#' rows describing the *same* compound never look like two competing
+#' candidates. This matters most for `hypothesis_origin ==
+#' "single_adduct_isolated"` rows: two adducts of one compound that were
+#' each inferred independently (because they never merged into a shared
+#' adduct family) otherwise produce two rows with an identical
+#' `priority_score`, which a naive top-row-vs-second-row comparison flags as
+#' ambiguous even though there is no second identity at all.
+#'
+#' Uses the same identifier hierarchy as [resolve_cross_source_identity()]:
+#' `InChIKey` -> `InChI` -> `SMILES` -> database id (`broad_db_id` /
+#' `standard_db_compound_id`) -> name + formula, stopping at the first
+#' non-missing identifier (falling back from the `broad_db_*` to the
+#' `standard_db_*` columns at each level, since a row can carry either or
+#' both depending on `source`). Rows with none of these populated (no
+#' resolved database candidate at all) each receive their own unique key, so
+#' they are never collapsed with one another.
+#'
+#' @param combined A data.frame with `broad_db_inchikey`, `broad_db_inchi`,
+#'   `broad_db_smiles`, `broad_db_id`, `broad_db_name`, `broad_db_formula`,
+#'   `standard_db_inchikey`, `standard_db_smiles`, `standard_db_compound_id`,
+#'   `standard_db_name`, `standard_db_formula` columns.
+#'
+#' @return A character vector, the same length as `nrow(combined)`, with one
+#'   identity key per row.
+#' @keywords internal
+resolve_identity_key <- function(combined) {
+  n <- nrow(combined)
+
+  norm_chr <- function(x) {
+    if (is.null(x)) return(rep(NA_character_, n))
+    x <- as.character(x)
+    x[!nzchar(x)] <- NA_character_
+    x
+  }
+
+  inchikey <- dplyr::coalesce(norm_chr(combined[["broad_db_inchikey"]]), norm_chr(combined[["standard_db_inchikey"]]))
+  inchi <- norm_chr(combined[["broad_db_inchi"]])
+  smiles <- dplyr::coalesce(norm_chr(combined[["broad_db_smiles"]]), norm_chr(combined[["standard_db_smiles"]]))
+  db_id <- dplyr::coalesce(norm_chr(combined[["broad_db_id"]]), norm_chr(combined[["standard_db_compound_id"]]))
+
+  name <- dplyr::coalesce(norm_chr(combined[["broad_db_name"]]), norm_chr(combined[["standard_db_name"]]))
+  formula <- dplyr::coalesce(norm_chr(combined[["broad_db_formula"]]), norm_chr(combined[["standard_db_formula"]]))
+  name_formula <- ifelse(
+    is.na(name) & is.na(formula), NA_character_,
+    paste(dplyr::coalesce(name, ""), dplyr::coalesce(formula, ""), sep = "||")
+  )
+
+  key <- dplyr::coalesce(
+    ifelse(is.na(inchikey), NA_character_, paste0("inchikey:", inchikey)),
+    ifelse(is.na(inchi), NA_character_, paste0("inchi:", inchi)),
+    ifelse(is.na(smiles), NA_character_, paste0("smiles:", smiles)),
+    ifelse(is.na(db_id), NA_character_, paste0("id:", db_id)),
+    ifelse(is.na(name_formula), NA_character_, paste0("name:", name_formula))
+  )
+
+  missing <- is.na(key)
+  key[missing] <- paste0("row:", which(missing))
+  key
 }
 
 

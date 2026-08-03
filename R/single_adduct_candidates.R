@@ -391,6 +391,11 @@ build_single_adduct_candidates <- function(
     )
   }
 
+  compound_candidates <- expand_compound_candidates_for_standards(
+    compound_candidates, standard_candidates,
+    neutral_for_matching, compound_db, ppm_tol
+  )
+
   if (!nrow(compound_candidates) &&
       (is.null(standard_candidates) || !nrow(standard_candidates))) {
     resolved_identity <- data.frame(

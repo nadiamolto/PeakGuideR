@@ -171,8 +171,13 @@ compute_priority_score <- function(scores, weights = default_priority_weights())
 #'   `0`) counted as multi-evidence support for `broad_db_only` candidates.
 #'   Reuses the same threshold as the `adduct_min_score` workflow parameter.
 #' @param ambiguity_gap Minimum `priority_score` gap between the top-1 and
-#'   top-2 candidate of the same `neutral_mass_id` required to *not* flag
-#'   `ambiguous_isomeric`.
+#'   top-2 *chemical identity* of the same `neutral_mass_id` required to
+#'   *not* flag `ambiguous_isomeric`. Rows are first collapsed by resolved
+#'   identity (see [resolve_identity_key()]) and only their best
+#'   `priority_score` kept, so two rows describing the same compound - most
+#'   commonly two `single_adduct_isolated` hypotheses for adducts of one
+#'   compound that never merged into a shared family - never count as a
+#'   second, competing candidate.
 #' @param include_single_adduct Logical. If `FALSE`, or if `pkm` is `NULL`,
 #'   single-adduct hypotheses are not computed.
 #' @param quiet Logical. If `FALSE`, database loading functions may print
@@ -449,6 +454,11 @@ build_candidate_annotations <- function(
     )
   }
 
+  compound_candidates_fam <- expand_compound_candidates_for_standards(
+    compound_candidates_fam, standard_candidates_fam,
+    neutral_for_matching_fam, compound_db, ppm_tol
+  )
+
   resolved_fam <- resolve_cross_source_identity(compound_candidates_fam, standard_candidates_fam)
 
   family_annotations <- resolved_fam |>
@@ -618,18 +628,24 @@ build_candidate_annotations <- function(
       )
     )
 
+  combined$.identity_key <- resolve_identity_key(combined)
+
   ambig <- combined |>
     dplyr::filter(!is.na(priority_score)) |>
+    dplyr::group_by(neutral_mass_id, .identity_key) |>
+    dplyr::summarise(.identity_score = max(priority_score, na.rm = TRUE), .groups = "drop") |>
     dplyr::group_by(neutral_mass_id) |>
     dplyr::summarise(
-      .top1 = sort(priority_score, decreasing = TRUE)[1],
-      .top2 = if (dplyr::n() >= 2) sort(priority_score, decreasing = TRUE)[2] else NA_real_,
+      .top1 = sort(.identity_score, decreasing = TRUE)[1],
+      .top2 = if (dplyr::n() >= 2) sort(.identity_score, decreasing = TRUE)[2] else NA_real_,
       .groups = "drop"
     ) |>
     dplyr::mutate(
       ambiguous_isomeric = is.finite(.top1) & is.finite(.top2) & (.top1 - .top2) < ambiguity_gap
     ) |>
     dplyr::select(neutral_mass_id, ambiguous_isomeric)
+
+  combined$.identity_key <- NULL
 
   combined <- combined |>
     dplyr::left_join(ambig, by = "neutral_mass_id") |>

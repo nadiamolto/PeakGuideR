@@ -22,7 +22,15 @@ match_compound_db_by_mass(
 
 \item{top_n}{Maximum number of candidates kept per \code{neutral_mass_id},
 ranked by ascending ppm error. Use \code{NULL} to retain all candidates
-within \code{ppm_tol}.}
+within \code{ppm_tol}. This cut is blind to \code{standards_db}: in a mass window
+crowded with more than \code{top_n} isomers/isobars, the one candidate that
+would have linked to a standards-library compound can be truncated away
+before \code{\link[=resolve_cross_source_identity]{resolve_cross_source_identity()}} ever sees it.
+\code{\link[=build_candidate_annotations]{build_candidate_annotations()}} and \code{\link[=build_single_adduct_candidates]{build_single_adduct_candidates()}}
+compensate for this explicitly, via
+\code{\link[=expand_compound_candidates_for_standards]{expand_compound_candidates_for_standards()}}, for the \code{neutral_mass_id}
+values where a standard was actually found - this function itself
+applies \code{top_n} unconditionally.}
 }
 \value{
 A data.frame with one row per \code{neutral_mass_id} and compound
