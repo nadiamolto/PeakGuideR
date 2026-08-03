@@ -172,8 +172,13 @@ Reuses the same threshold as the <code>adduct_min_score</code> workflow paramete
 
 <dt id="arg-ambiguity-gap">ambiguity_gap<a class="anchor" aria-label="anchor" href="#arg-ambiguity-gap"></a></dt>
 <dd><p>Minimum <code>priority_score</code> gap between the top-1 and
-top-2 candidate of the same <code>neutral_mass_id</code> required to <em>not</em> flag
-<code>ambiguous_isomeric</code>.</p></dd>
+top-2 <em>chemical identity</em> of the same <code>neutral_mass_id</code> required to
+<em>not</em> flag <code>ambiguous_isomeric</code>. Rows are first collapsed by resolved
+identity (see <code><a href="resolve_identity_key.html">resolve_identity_key()</a></code>) and only their best
+<code>priority_score</code> kept, so two rows describing the same compound - most
+commonly two <code>single_adduct_isolated</code> hypotheses for adducts of one
+compound that never merged into a shared family - never count as a
+second, competing candidate.</p></dd>
 
 
 <dt id="arg-include-single-adduct">include_single_adduct<a class="anchor" aria-label="anchor" href="#arg-include-single-adduct"></a></dt>

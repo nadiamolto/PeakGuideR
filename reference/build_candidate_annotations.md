@@ -115,9 +115,15 @@ build_candidate_annotations(
 
 - ambiguity_gap:
 
-  Minimum `priority_score` gap between the top-1 and top-2 candidate of
-  the same `neutral_mass_id` required to *not* flag
-  `ambiguous_isomeric`.
+  Minimum `priority_score` gap between the top-1 and top-2 *chemical
+  identity* of the same `neutral_mass_id` required to *not* flag
+  `ambiguous_isomeric`. Rows are first collapsed by resolved identity
+  (see
+  [`resolve_identity_key()`](https://nadiamolto.github.io/PeakGuideR/reference/resolve_identity_key.md))
+  and only their best `priority_score` kept, so two rows describing the
+  same compound - most commonly two `single_adduct_isolated` hypotheses
+  for adducts of one compound that never merged into a shared family -
+  never count as a second, competing candidate.
 
 - include_single_adduct:
 

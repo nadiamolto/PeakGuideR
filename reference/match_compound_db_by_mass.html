@@ -88,7 +88,15 @@ only once per neutral mass.</p>
 <dt id="arg-top-n">top_n<a class="anchor" aria-label="anchor" href="#arg-top-n"></a></dt>
 <dd><p>Maximum number of candidates kept per <code>neutral_mass_id</code>,
 ranked by ascending ppm error. Use <code>NULL</code> to retain all candidates
-within <code>ppm_tol</code>.</p></dd>
+within <code>ppm_tol</code>. This cut is blind to <code>standards_db</code>: in a mass window
+crowded with more than <code>top_n</code> isomers/isobars, the one candidate that
+would have linked to a standards-library compound can be truncated away
+before <code><a href="resolve_cross_source_identity.html">resolve_cross_source_identity()</a></code> ever sees it.
+<code><a href="build_candidate_annotations.html">build_candidate_annotations()</a></code> and <code><a href="build_single_adduct_candidates.html">build_single_adduct_candidates()</a></code>
+compensate for this explicitly, via
+<code><a href="expand_compound_candidates_for_standards.html">expand_compound_candidates_for_standards()</a></code>, for the <code>neutral_mass_id</code>
+values where a standard was actually found - this function itself
+applies <code>top_n</code> unconditionally.</p></dd>
 
 </dl></div>
     <div class="section level2">

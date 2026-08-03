@@ -41,7 +41,19 @@ match_compound_db_by_mass(
 
   Maximum number of candidates kept per `neutral_mass_id`, ranked by
   ascending ppm error. Use `NULL` to retain all candidates within
-  `ppm_tol`.
+  `ppm_tol`. This cut is blind to `standards_db`: in a mass window
+  crowded with more than `top_n` isomers/isobars, the one candidate that
+  would have linked to a standards-library compound can be truncated
+  away before
+  [`resolve_cross_source_identity()`](https://nadiamolto.github.io/PeakGuideR/reference/resolve_cross_source_identity.md)
+  ever sees it.
+  [`build_candidate_annotations()`](https://nadiamolto.github.io/PeakGuideR/reference/build_candidate_annotations.md)
+  and
+  [`build_single_adduct_candidates()`](https://nadiamolto.github.io/PeakGuideR/reference/build_single_adduct_candidates.md)
+  compensate for this explicitly, via
+  [`expand_compound_candidates_for_standards()`](https://nadiamolto.github.io/PeakGuideR/reference/expand_compound_candidates_for_standards.md),
+  for the `neutral_mass_id` values where a standard was actually found -
+  this function itself applies `top_n` unconditionally.
 
 ## Value
 
