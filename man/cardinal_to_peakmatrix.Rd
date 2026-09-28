@@ -24,7 +24,13 @@ cardinal_to_peakmatrix(
 \item{area}{Optional area matrix.}
 }
 \value{
-An object with rMSIprocPeakMatrix-like structure.
+An object with rMSIprocPeakMatrix-like structure. In addition to
+the usual peak matrix fields, it contains \code{image_id}, a factor with one
+entry per pixel giving the run/image the pixel comes from
+(\code{Cardinal::run(x)}), or \code{NULL} if it could not be obtained. It is used
+to plot each image separately (see \code{\link[=plot_ion_image]{plot_ion_image()}}) and by
+\code{run_peakguider_workflow(multi_image = TRUE)}. The other fields, including
+\code{numPixels} and \code{names}, are unchanged.
 }
 \description{
 Converts a supported Cardinal MSI object into a PeakGuideR peak matrix with

@@ -13,7 +13,8 @@ plot_ion_image(
   title = NULL,
   flip_y = TRUE,
   clip_quantile = NULL,
-  show_legend = TRUE
+  show_legend = TRUE,
+  group = NULL
 )
 }
 \arguments{
@@ -55,6 +56,17 @@ handful of saturated pixels do not flatten the rest of the colour scale.}
 
 \item{show_legend}{Logical. If \code{FALSE}, the intensity colour legend is
 omitted.}
+
+\item{group}{Optional grouping of the pixels into separate images, used to
+draw one panel per image side by side with \code{ggplot2::facet_wrap()}. If
+\code{NULL} (default), the image identity stored in \code{pkm$image_id} (added by
+\code{\link[=cardinal_to_peakmatrix]{cardinal_to_peakmatrix()}}) or described by \code{pkm$numPixels}/\code{pkm$names}
+(native rMSI2 peak matrices) is used when it contains more than one
+image; otherwise a single panel is drawn. Alternatively, a vector with
+one value per pixel (\code{nrow(pkm$intensity)}), or \code{FALSE} to always draw a
+single panel. Pixel coordinates are not required to be unique across
+images, so overlapping coordinates between images are drawn in separate
+panels instead of on top of each other.}
 }
 \value{
 A \code{ggplot} object.

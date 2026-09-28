@@ -429,11 +429,26 @@ build_candidate_annotations <- function(
       has_eips = dplyr::coalesce(has_eips, FALSE)
     )
 
+  # EIPS evidence explained by a feature's own assigned adduct (a Cl isotope
+  # pattern on an `[M+Cl]-` feature) is not independent support for the neutral
+  # molecule; drop it before it is aggregated per neutral_mass_id.
+  if (all(c("eips_elements", "eips_score") %in% names(member_feature_info))) {
+    member_feature_info[c("has_eips", "eips_elements", "eips_score")] <-
+      drop_adduct_explained_eips(
+        member_feature_info$adduct,
+        member_feature_info$has_eips,
+        member_feature_info$eips_elements,
+        member_feature_info$eips_score
+      )
+  }
+
   family_evidence <- member_feature_info |>
+    dplyr::distinct(neutral_mass_id, idx, adduct) |>
+    dplyr::arrange(neutral_mass_id, idx) |>
     dplyr::group_by(neutral_mass_id) |>
     dplyr::summarise(
-      feature_idx = paste(sort(unique(idx)), collapse = ";"),
-      inferred_adduct = paste(sort(unique(adduct)), collapse = ";"),
+      feature_idx = paste(idx, collapse = ";"),
+      inferred_adduct = paste(adduct, collapse = ";"),
       .groups = "drop"
     )
 
@@ -523,8 +538,8 @@ build_candidate_annotations <- function(
   single_feature_rows <- NULL
   if (!is.null(single_rows) && nrow(single_rows) > 0) {
     single_feature_rows <- single_rows |>
-      dplyr::distinct(neutral_mass_id, feature_idx) |>
-      dplyr::rename(idx = feature_idx) |>
+      dplyr::distinct(neutral_mass_id, feature_idx, inferred_adduct) |>
+      dplyr::rename(idx = feature_idx, adduct = inferred_adduct) |>
       dplyr::left_join(
         feature_summary |> dplyr::select(dplyr::all_of(feature_cols)),
         by = "idx"
@@ -533,6 +548,16 @@ build_candidate_annotations <- function(
         is_c13_m0 = dplyr::coalesce(is_c13_m0, FALSE),
         has_eips = dplyr::coalesce(has_eips, FALSE)
       )
+
+    if (all(c("eips_elements", "eips_score") %in% names(single_feature_rows))) {
+      single_feature_rows[c("has_eips", "eips_elements", "eips_score")] <-
+        drop_adduct_explained_eips(
+          single_feature_rows$adduct,
+          single_feature_rows$has_eips,
+          single_feature_rows$eips_elements,
+          single_feature_rows$eips_score
+        )
+    }
   }
 
   feature_evidence_cols <- c("neutral_mass_id", "idx", "is_c13_m0", "c13_score", "has_eips", "eips_score")

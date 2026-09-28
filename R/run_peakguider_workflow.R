@@ -49,6 +49,19 @@
 #'   `build_single_adduct_candidates()`). If `FALSE`, only family-derived
 #'   candidates are included.
 #' @param quiet Logical. If `FALSE`, prints progress messages.
+#' @param multi_image Logical. Set to `TRUE` when `pkm` contains more than one
+#'   image/run concatenated by pixel (for example a Cardinal object with
+#'   several runs, or an rMSI2 peak matrix with several images). Annotation
+#'   stays fully joint: correlation, EIPS, adduct detection and candidate
+#'   scoring pool all pixels of all images, and a single `candidate_annotations`
+#'   table is returned. Because pixel coordinates are local to each image and
+#'   may overlap between images, **the tile-based spatial-consistency step of
+#'   `iso_morphology_candidates()` is disabled** (`use_tiles = FALSE`), so
+#'   `morph_results$tile_consistency` is `NA` and the isotope-morphology score
+#'   relies on the global spatial score only. The per-pixel image identity is
+#'   attached to the returned `pkm` as `image_id` so that `plot_ion_image()`
+#'   shows each image in its own panel. The default `FALSE` leaves the workflow
+#'   unchanged.
 #'
 #' @return A list with all main PeakGuideR workflow outputs.
 #'
@@ -93,7 +106,8 @@ run_peakguider_workflow <- function(
     candidate_ppm_tol = 5,
     top_n = 10L,
     include_single_adduct = TRUE,
-    quiet = FALSE
+    quiet = FALSE,
+    multi_image = FALSE
 ) {
 
   ion_mode <- match.arg(ion_mode)
@@ -143,6 +157,19 @@ run_peakguider_workflow <- function(
     )
   }
 
+  if (isTRUE(multi_image)) {
+    pkm$image_id <- derive_image_id_from_pkm(pkm)
+
+    if (!isTRUE(quiet)) {
+      message(
+        "Multi-image mode: annotation is pooled across ",
+        nlevels(pkm$image_id),
+        " image(s); tile-based isotope-morphology consistency is disabled ",
+        "because pixel coordinates are not unique across images."
+      )
+    }
+  }
+
   if (!isTRUE(quiet)) {
     message("1/8 Detecting isotope morphology candidates...")
   }
@@ -152,7 +179,8 @@ run_peakguider_workflow <- function(
     prefer_mode = morph_prefer_mode,
     method = morph_method,
     transform = morph_transform,
-    tile_blend = morph_tile_blend
+    tile_blend = morph_tile_blend,
+    use_tiles = !isTRUE(multi_image)
   )
 
   if (!isTRUE(quiet)) {
@@ -313,6 +341,10 @@ run_peakguider_workflow <- function(
       include_single_adduct = include_single_adduct
     )
   )
+
+  if (isTRUE(multi_image)) {
+    out$parameters$multi_image <- TRUE
+  }
 
   class(out) <- c("peakguider_workflow", class(out))
 

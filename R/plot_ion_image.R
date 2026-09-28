@@ -34,6 +34,16 @@
 #'   handful of saturated pixels do not flatten the rest of the colour scale.
 #' @param show_legend Logical. If `FALSE`, the intensity colour legend is
 #'   omitted.
+#' @param group Optional grouping of the pixels into separate images, used to
+#'   draw one panel per image side by side with `ggplot2::facet_wrap()`. If
+#'   `NULL` (default), the image identity stored in `pkm$image_id` (added by
+#'   [cardinal_to_peakmatrix()]) or described by `pkm$numPixels`/`pkm$names`
+#'   (native rMSI2 peak matrices) is used when it contains more than one
+#'   image; otherwise a single panel is drawn. Alternatively, a vector with
+#'   one value per pixel (`nrow(pkm$intensity)`), or `FALSE` to always draw a
+#'   single panel. Pixel coordinates are not required to be unique across
+#'   images, so overlapping coordinates between images are drawn in separate
+#'   panels instead of on top of each other.
 #'
 #' @return A `ggplot` object.
 #'
@@ -55,7 +65,8 @@ plot_ion_image <- function(
     title = NULL,
     flip_y = TRUE,
     clip_quantile = NULL,
-    show_legend = TRUE
+    show_legend = TRUE,
+    group = NULL
 ) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop(
@@ -130,6 +141,23 @@ plot_ion_image <- function(
     intensity = intensity_vals
   )
 
+  group_vals <- NULL
+  if (is.null(group)) {
+    auto_group <- tryCatch(derive_image_id_from_pkm(pkm), error = function(e) NULL)
+    if (!is.null(auto_group) && nlevels(droplevels(auto_group)) > 1L) {
+      group_vals <- auto_group
+    }
+  } else if (!isFALSE(group)) {
+    if (length(group) != nrow(pkm$intensity)) {
+      stop("`group` must have one value per pixel (`nrow(pkm$intensity)`).", call. = FALSE)
+    }
+    group_vals <- if (is.factor(group)) droplevels(group) else factor(group, levels = unique(group))
+  }
+
+  if (!is.null(group_vals)) {
+    df$image <- group_vals
+  }
+
   if (is.null(title)) {
     title <- sprintf("m/z %.4f", pkm$mass[idx])
   }
@@ -144,6 +172,10 @@ plot_ion_image <- function(
     p + ggplot2::scale_fill_viridis_c(option = "D")
   } else {
     p + ggplot2::scale_fill_viridis_c(option = palette)
+  }
+
+  if (!is.null(group_vals)) {
+    p <- p + ggplot2::facet_wrap(ggplot2::vars(.data$image))
   }
 
   if (!isTRUE(show_legend)) {

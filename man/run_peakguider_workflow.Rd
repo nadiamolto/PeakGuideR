@@ -30,7 +30,8 @@ run_peakguider_workflow(
   candidate_ppm_tol = 5,
   top_n = 10L,
   include_single_adduct = TRUE,
-  quiet = FALSE
+  quiet = FALSE,
+  multi_image = FALSE
 )
 }
 \arguments{
@@ -99,6 +100,20 @@ features not assigned to any adduct family (see
 candidates are included.}
 
 \item{quiet}{Logical. If \code{FALSE}, prints progress messages.}
+
+\item{multi_image}{Logical. Set to \code{TRUE} when \code{pkm} contains more than one
+image/run concatenated by pixel (for example a Cardinal object with
+several runs, or an rMSI2 peak matrix with several images). Annotation
+stays fully joint: correlation, EIPS, adduct detection and candidate
+scoring pool all pixels of all images, and a single \code{candidate_annotations}
+table is returned. Because pixel coordinates are local to each image and
+may overlap between images, \strong{the tile-based spatial-consistency step of
+\code{iso_morphology_candidates()} is disabled} (\code{use_tiles = FALSE}), so
+\code{morph_results$tile_consistency} is \code{NA} and the isotope-morphology score
+relies on the global spatial score only. The per-pixel image identity is
+attached to the returned \code{pkm} as \code{image_id} so that \code{plot_ion_image()}
+shows each image in its own panel. The default \code{FALSE} leaves the workflow
+unchanged.}
 }
 \value{
 A list with all main PeakGuideR workflow outputs.

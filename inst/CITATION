@@ -1,0 +1,24 @@
+bibentry(
+  "Manual",
+  title = "PeakGuideR: Evidence-based Annotation Support for MALDI-MSI Peak Features",
+  author = person(
+    given = "Nadia",
+    family = "Molto",
+    email = "nadia.molto@gmail.com",
+    comment = c(ORCID = "0009-0003-0042-4997")
+  ),
+  year = "in preparation",
+  url = "https://github.com/nadiamolto/PeakGuideR",
+  note = paste(
+    "R package under development, not yet formally published.",
+    "Please contact the author before citing it",
+    "(development snapshots archived at https://doi.org/10.5281/zenodo.20705395)"
+  ),
+  header = "PeakGuideR has not yet been formally published. This entry is informational only; please contact the author before citing the package:",
+  textVersion = paste(
+    "Molto N. PeakGuideR: Evidence-based Annotation Support for MALDI-MSI Peak Features.",
+    "R package under development, not yet formally published;",
+    "please contact the author before citing it.",
+    "https://github.com/nadiamolto/PeakGuideR"
+  )
+)

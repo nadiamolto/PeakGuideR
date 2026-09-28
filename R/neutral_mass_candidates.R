@@ -229,6 +229,19 @@ build_neutral_mass_candidates <- function(
       has_eips = dplyr::coalesce(has_eips, FALSE)
     )
 
+  # Keep the EIPS aggregates consistent with build_candidate_annotations():
+  # an elemental isotope pattern explained by the feature's own adduct (Cl on
+  # an `[M+Cl]-` feature) is not independent support for the neutral molecule.
+  if (all(c("eips_elements", "eips_score") %in% names(member_feature_info))) {
+    member_feature_info[c("has_eips", "eips_elements", "eips_score")] <-
+      drop_adduct_explained_eips(
+        member_feature_info$adduct,
+        member_feature_info$has_eips,
+        member_feature_info$eips_elements,
+        member_feature_info$eips_score
+      )
+  }
+
   neutral_summary <- fam_summary_f |>
     dplyr::group_by(neutral_mass_id) |>
     dplyr::summarise(
@@ -238,14 +251,18 @@ build_neutral_mass_candidates <- function(
       .groups = "drop"
     )
 
-  adduct_support_summary <- member_feature_info |>
+  member_feature_info_ordered <- member_feature_info |>
+    dplyr::distinct(neutral_mass_id, idx, mz, adduct, .keep_all = TRUE) |>
+    dplyr::arrange(neutral_mass_id, idx)
+
+  adduct_support_summary <- member_feature_info_ordered |>
     dplyr::group_by(neutral_mass_id) |>
     dplyr::summarise(
       n_features = dplyr::n_distinct(idx),
-      feature_idx = paste(sort(unique(idx)), collapse = ";"),
-      feature_mz = paste(round(sort(unique(mz)), 6), collapse = ";"),
+      feature_idx = paste(idx, collapse = ";"),
+      feature_mz = paste(round(mz, 6), collapse = ";"),
       n_adducts_inferred = dplyr::n_distinct(adduct),
-      inferred_adducts = paste(sort(unique(adduct)), collapse = ";"),
+      inferred_adducts = paste(adduct, collapse = ";"),
 
       has_CIR_support = any(is_c13_m0, na.rm = TRUE),
       CIR_feature_idx = paste(

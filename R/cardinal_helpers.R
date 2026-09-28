@@ -38,7 +38,13 @@ is_cardinal_object <- function(x) {
 #' @param snr Optional SNR matrix.
 #' @param area Optional area matrix.
 #'
-#' @return An object with rMSIprocPeakMatrix-like structure.
+#' @return An object with rMSIprocPeakMatrix-like structure. In addition to
+#'   the usual peak matrix fields, it contains `image_id`, a factor with one
+#'   entry per pixel giving the run/image the pixel comes from
+#'   (`Cardinal::run(x)`), or `NULL` if it could not be obtained. It is used
+#'   to plot each image separately (see [plot_ion_image()]) and by
+#'   `run_peakguider_workflow(multi_image = TRUE)`. The other fields, including
+#'   `numPixels` and `names`, are unchanged.
 #'
 #' @examples
 #' \dontrun{
@@ -225,6 +231,14 @@ cardinal_to_peakmatrix <- function(
     }
   }
 
+  image_id <- tryCatch(
+    {
+      run_id <- Cardinal::run(x)
+      if (length(run_id) == nPix) factor(as.character(run_id), levels = unique(as.character(run_id))) else NULL
+    },
+    error = function(e) NULL
+  )
+
   pkm_rms <- list(
     mass = mass,
     binSize = binSize,
@@ -235,7 +249,8 @@ cardinal_to_peakmatrix <- function(
     pos = pos,
     numPixels = as.integer(nPix),
     names = as.character(dataset_name),
-    posMotors = posMotors
+    posMotors = posMotors,
+    image_id = image_id
   )
 
   colnames(pkm_rms$pos) <- c("x", "y")
