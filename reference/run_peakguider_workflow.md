@@ -37,7 +37,8 @@ run_peakguider_workflow(
   candidate_ppm_tol = 5,
   top_n = 10L,
   include_single_adduct = TRUE,
-  quiet = FALSE
+  quiet = FALSE,
+  multi_image = FALSE
 )
 ```
 
@@ -163,6 +164,25 @@ run_peakguider_workflow(
 - quiet:
 
   Logical. If `FALSE`, prints progress messages.
+
+- multi_image:
+
+  Logical. Set to `TRUE` when `pkm` contains more than one image/run
+  concatenated by pixel (for example a Cardinal object with several
+  runs, or an rMSI2 peak matrix with several images). Annotation stays
+  fully joint: correlation, EIPS, adduct detection and candidate scoring
+  pool all pixels of all images, and a single `candidate_annotations`
+  table is returned. Because pixel coordinates are local to each image
+  and may overlap between images, **the tile-based spatial-consistency
+  step of
+  [`iso_morphology_candidates()`](https://nadiamolto.github.io/PeakGuideR/reference/iso_morphology_candidates.md)
+  is disabled** (`use_tiles = FALSE`), so
+  `morph_results$tile_consistency` is `NA` and the isotope-morphology
+  score relies on the global spatial score only. The per-pixel image
+  identity is attached to the returned `pkm` as `image_id` so that
+  [`plot_ion_image()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_ion_image.md)
+  shows each image in its own panel. The default `FALSE` leaves the
+  workflow unchanged.
 
 ## Value
 

@@ -56,7 +56,8 @@ peak matrix, using <code>ggplot2</code>.</p>
 <span>  title <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  flip_y <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  clip_quantile <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  show_legend <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  show_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  group <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -119,6 +120,19 @@ handful of saturated pixels do not flatten the rest of the colour scale.</p></dd
 <dt id="arg-show-legend">show_legend<a class="anchor" aria-label="anchor" href="#arg-show-legend"></a></dt>
 <dd><p>Logical. If <code>FALSE</code>, the intensity colour legend is
 omitted.</p></dd>
+
+
+<dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
+<dd><p>Optional grouping of the pixels into separate images, used to
+draw one panel per image side by side with <code><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">ggplot2::facet_wrap()</a></code>. If
+<code>NULL</code> (default), the image identity stored in <code>pkm$image_id</code> (added by
+<code><a href="cardinal_to_peakmatrix.html">cardinal_to_peakmatrix()</a></code>) or described by <code>pkm$numPixels</code>/<code>pkm$names</code>
+(native rMSI2 peak matrices) is used when it contains more than one
+image; otherwise a single panel is drawn. Alternatively, a vector with
+one value per pixel (<code>nrow(pkm$intensity)</code>), or <code>FALSE</code> to always draw a
+single panel. Pixel coordinates are not required to be unique across
+images, so overlapping coordinates between images are drawn in separate
+panels instead of on top of each other.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -8,16 +8,17 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/nadiamolto/PeakGuideR/blob/main/DESCRIPTION)
+[`inst/CITATION`](https://github.com/nadiamolto/PeakGuideR/blob/main/inst/CITATION)
 
-Molto N (2026). *PeakGuideR: Evidence-based Annotation Support for
-MALDI-MSI Peak Features*. R package version 0.0.0.9000,
-<https://github.com/nadiamolto/PeakGuideR>.
+Molto N. PeakGuideR: Evidence-based Annotation Support for MALDI-MSI
+Peak Features. R package under development, not yet formally published;
+please contact the author before citing it.
+https://github.com/nadiamolto/PeakGuideR
 
     @Manual{,
       title = {PeakGuideR: Evidence-based Annotation Support for MALDI-MSI Peak Features},
       author = {Nadia Molto},
-      year = {2026},
-      note = {R package version 0.0.0.9000},
+      year = {in preparation},
       url = {https://github.com/nadiamolto/PeakGuideR},
+      note = {R package under development, not yet formally published. Please contact the author before citing it (development snapshots archived at https://doi.org/10.5281/zenodo.20705395)},
     }

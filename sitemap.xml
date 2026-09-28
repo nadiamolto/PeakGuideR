@@ -11,6 +11,7 @@
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/PeakGuideR-package.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/adduct_candidates.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/adduct_families.html</loc></url>
+<url><loc>https://nadiamolto.github.io/PeakGuideR/reference/adduct_introduced_eips_element.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/assign_neutral_mass_clusters.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/build_candidate_annotations.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/build_feature_summary.html</loc></url>
@@ -26,6 +27,8 @@
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/deduplicate_compound_identity.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/default_adducts.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/default_priority_weights.html</loc></url>
+<url><loc>https://nadiamolto.github.io/PeakGuideR/reference/derive_image_id_from_pkm.html</loc></url>
+<url><loc>https://nadiamolto.github.io/PeakGuideR/reference/drop_adduct_explained_eips.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/eips_score.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/example_pkm.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/expand_compound_candidates_for_standards.html</loc></url>

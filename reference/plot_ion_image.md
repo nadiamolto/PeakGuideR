@@ -15,7 +15,8 @@ plot_ion_image(
   title = NULL,
   flip_y = TRUE,
   clip_quantile = NULL,
-  show_legend = TRUE
+  show_legend = TRUE,
+  group = NULL
 )
 ```
 
@@ -76,6 +77,22 @@ plot_ion_image(
 - show_legend:
 
   Logical. If `FALSE`, the intensity colour legend is omitted.
+
+- group:
+
+  Optional grouping of the pixels into separate images, used to draw one
+  panel per image side by side with
+  [`ggplot2::facet_wrap()`](https://ggplot2.tidyverse.org/reference/facet_wrap.html).
+  If `NULL` (default), the image identity stored in `pkm$image_id`
+  (added by
+  [`cardinal_to_peakmatrix()`](https://nadiamolto.github.io/PeakGuideR/reference/cardinal_to_peakmatrix.md))
+  or described by `pkm$numPixels`/`pkm$names` (native rMSI2 peak
+  matrices) is used when it contains more than one image; otherwise a
+  single panel is drawn. Alternatively, a vector with one value per
+  pixel (`nrow(pkm$intensity)`), or `FALSE` to always draw a single
+  panel. Pixel coordinates are not required to be unique across images,
+  so overlapping coordinates between images are drawn in separate panels
+  instead of on top of each other.
 
 ## Value
 

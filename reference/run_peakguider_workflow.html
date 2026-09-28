@@ -85,7 +85,8 @@ summarization and neutral-mass candidate matching.</p>
 <span>  candidate_ppm_tol <span class="op">=</span> <span class="fl">5</span>,</span>
 <span>  top_n <span class="op">=</span> <span class="fl">10L</span>,</span>
 <span>  include_single_adduct <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  multi_image <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -209,6 +210,22 @@ candidates are included.</p></dd>
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
 <dd><p>Logical. If <code>FALSE</code>, prints progress messages.</p></dd>
+
+
+<dt id="arg-multi-image">multi_image<a class="anchor" aria-label="anchor" href="#arg-multi-image"></a></dt>
+<dd><p>Logical. Set to <code>TRUE</code> when <code>pkm</code> contains more than one
+image/run concatenated by pixel (for example a Cardinal object with
+several runs, or an rMSI2 peak matrix with several images). Annotation
+stays fully joint: correlation, EIPS, adduct detection and candidate
+scoring pool all pixels of all images, and a single <code>candidate_annotations</code>
+table is returned. Because pixel coordinates are local to each image and
+may overlap between images, <strong>the tile-based spatial-consistency step of
+<code><a href="iso_morphology_candidates.html">iso_morphology_candidates()</a></code> is disabled</strong> (<code>use_tiles = FALSE</code>), so
+<code>morph_results$tile_consistency</code> is <code>NA</code> and the isotope-morphology score
+relies on the global spatial score only. The per-pixel image identity is
+attached to the returned <code>pkm</code> as <code>image_id</code> so that <code><a href="plot_ion_image.html">plot_ion_image()</a></code>
+shows each image in its own panel. The default <code>FALSE</code> leaves the workflow
+unchanged.</p></dd>
 
 </dl></div>
     <div class="section level2">

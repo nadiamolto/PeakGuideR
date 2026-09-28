@@ -39,7 +39,14 @@ cardinal_to_peakmatrix(
 
 ## Value
 
-An object with rMSIprocPeakMatrix-like structure.
+An object with rMSIprocPeakMatrix-like structure. In addition to the
+usual peak matrix fields, it contains `image_id`, a factor with one
+entry per pixel giving the run/image the pixel comes from
+(`Cardinal::run(x)`), or `NULL` if it could not be obtained. It is used
+to plot each image separately (see
+[`plot_ion_image()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_ion_image.md))
+and by `run_peakguider_workflow(multi_image = TRUE)`. The other fields,
+including `numPixels` and `names`, are unchanged.
 
 ## Examples
 

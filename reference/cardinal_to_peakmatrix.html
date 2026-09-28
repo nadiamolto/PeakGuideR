@@ -82,7 +82,13 @@ an rMSIprocPeakMatrix-like structure.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object with rMSIprocPeakMatrix-like structure.</p>
+    <p>An object with rMSIprocPeakMatrix-like structure. In addition to
+the usual peak matrix fields, it contains <code>image_id</code>, a factor with one
+entry per pixel giving the run/image the pixel comes from
+(<code>Cardinal::run(x)</code>), or <code>NULL</code> if it could not be obtained. It is used
+to plot each image separately (see <code><a href="plot_ion_image.html">plot_ion_image()</a></code>) and by
+<code>run_peakguider_workflow(multi_image = TRUE)</code>. The other fields, including
+<code>numPixels</code> and <code>names</code>, are unchanged.</p>
     </div>
 
     <div class="section level2">
