@@ -107,7 +107,15 @@ replaced by the user’s own objects.</p>
 <li>
 <code>mass</code>: m/z values of detected features;</li>
 <li>
-<code>intensity</code>: pixel-by-feature intensity matrix.</li>
+<code>intensity</code>: pixel-by-feature intensity matrix;</li>
+<li>
+<code>image_id</code>: only needed when analysing more than one
+image/run at once (<code>multi_image = TRUE</code> in
+<code><a href="../reference/run_peakguider_workflow.html">run_peakguider_workflow()</a></code>) - a per-pixel label saying which
+image each pixel belongs too. If it’s not already present, it’s derived
+automatically (see <code><a href="../reference/derive_image_id_from_pkm.html">derive_image_id_from_pkm()</a></code>); see
+“General control” under “Workflow parameters” bellow for the full
+explanation of <code>multi_image</code>.</li>
 </ul>
 <p>For example:</p>
 <p>Load the example peak matrix:</p>
@@ -191,6 +199,269 @@ morphology and ending with adduct-family grouping, before the
 neutral-mass and candidate tables described later in this vignette are
 built. The next three sections cover the intermediate evidence tables in
 that order.</p>
+</div>
+<div class="section level2">
+<h2 id="workflow-parameters">Workflow parameters<a class="anchor" aria-label="anchor" href="#workflow-parameters"></a>
+</h2>
+<p><code><a href="../reference/run_peakguider_workflow.html">run_peakguider_workflow()</a></code> exposes every tunable
+parameter of the functions it calls internally, grouped below by the
+stage they affect. Most analyses only need <code>pkm</code>,
+<code>ion_mode</code> and <code>matrix</code>; the rest have defaults
+chosen for high-resolution Orbitrap MALDI-MSI data and are only worth
+revisiting for a specific reason, noted for each parameter below.</p>
+<div class="section level3">
+<h3 id="input-and-ionisation-mode">Input and ionisation mode<a class="anchor" aria-label="anchor" href="#input-and-ionisation-mode"></a>
+</h3>
+<ul>
+<li>
+<code>pkm</code>: an rMSI2-style peak matrix, or a supported
+Cardinal <code>MSImagingExperiment</code>, converted internally with
+<code><a href="../reference/cardinal_to_peakmatrix.html">cardinal_to_peakmatrix()</a></code>.</li>
+<li>
+<code>ion_mode</code>: <code>"pos"</code> or <code>"neg"</code>.
+Selects which half of <code><a href="../reference/default_adducts.html">default_adducts()</a></code> is used whenever
+<code>adducts</code> is not supplied, and which ion-mode-specific EIPS
+formula-support step is run inside <code><a href="../reference/eips_score.html">eips_score()</a></code>.</li>
+<li>
+<code>matrix</code>: the MALDI matrix used for the acquisition. It
+is only checked against <code>"HCCA"</code> (case-insensitive); when it
+matches, standard-adduct support is enabled in
+<code><a href="../reference/build_candidate_annotations.html">build_candidate_annotations()</a></code>/
+<code><a href="../reference/build_neutral_mass_candidates.html">build_neutral_mass_candidates()</a></code>. Use
+<code>matrix = NULL</code> for any other matrix, since PeakGuideR
+currently ships a standard-adduct library only for HCCA+DEA - passing an
+unsupported matrix name has the same effect as <code>NULL</code>
+(standard-adduct support is simply not enabled), it is not an
+error.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="databases-and-adducts">Databases and adducts<a class="anchor" aria-label="anchor" href="#databases-and-adducts"></a>
+</h3>
+<ul>
+<li>
+<code>adducts</code>: an adduct definition table with
+<code>name</code>, <code>mode</code> and <code>mass</code> columns (net
+m/z shift). If <code>NULL</code>, <code>default_adducts(ion_mode)</code>
+is used. Supply a custom table to add an adduct not in the default list,
+restrict detection to a subset of adducts, or work with an ion source
+where the default mass shifts do not apply.</li>
+<li>
+<code>compound_db</code>: the broad compound mass database used for
+neutral-mass candidate matching. If <code>NULL</code>, the small example
+database bundled with the package is loaded; for real analyses, download
+the full database from Zenodo (see “Using full databases from Zenodo”
+below) and pass it here.</li>
+<li>
+<code>standards_db</code>: the standard-adduct library used when
+<code>matrix = "HCCA"</code>. If <code>NULL</code> and standard-adduct
+support is enabled, the bundled example library is loaded; as with
+<code>compound_db</code>, real analyses should supply the full Zenodo
+library.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="isotope-morphology-detection">Isotope morphology detection<a class="anchor" aria-label="anchor" href="#isotope-morphology-detection"></a>
+</h3>
+<p>These parameters are forwarded to
+<code><a href="../reference/iso_morphology_candidates.html">iso_morphology_candidates()</a></code> and control how candidate
+isotope pairs are first detected, purely from mass difference and
+spatial/intensity similarity, before any isotope-ratio validation.</p>
+<ul>
+<li>
+<code>morph_prefer_mode</code>: <code>"ppm"</code> (default) or
+<code>"dp"</code> - whether candidate isotope partners are searched
+within a ppm mass window or a fixed index window around the expected
+isotope shift. <code>"ppm"</code> is the natural choice for
+accurate-mass data; <code>"dp"</code> may be preferable for
+lower-resolution or unevenly mass-calibrated peak lists where a ppm
+window is not meaningful.</li>
+<li>
+<code>morph_method</code>: <code>"pearson"</code>,
+<code>"cosine"</code> or <code>"spearman"</code> - the spatial
+similarity metric between two features’ intensity profiles.
+<code>"pearson"</code> is the default; <code>"spearman"</code> trades
+some sensitivity for robustness to outlier pixels, and
+<code>"cosine"</code> ignores the mean intensity level entirely.</li>
+<li>
+<code>morph_transform</code>: <code>"none"</code>,
+<code>"log1p"</code> or <code>"zscore"</code> - an optional transform
+applied to intensity profiles before computing the similarity metric.
+<code>"log1p"</code> can help when a handful of very intense pixels
+would otherwise dominate the correlation.</li>
+<li>
+<code>morph_tile_blend</code>: <code>"median"</code>,
+<code>"p25"</code> or <code>"pass_rate"</code> - how per-tile morphology
+scores (computed when spatial tiling is active; see
+<code>multi_image</code> below) are summarised into
+<code>tile_summary</code>. <code>"pass_rate"</code> (fraction of tiles
+above a threshold) is more conservative than the <code>"median"</code>
+default when a pattern should hold consistently across the whole image
+rather than only on average.</li>
+</ul>
+<p>Several parameters of <code><a href="../reference/iso_morphology_candidates.html">iso_morphology_candidates()</a></code> itself
+- <code>tol_dp</code>, <code>tile_min_pixels</code>,
+<code>tile_alpha</code>, <code>tile_threshold</code>,
+<code>min_score_keep</code> - are not exposed by
+<code><a href="../reference/run_peakguider_workflow.html">run_peakguider_workflow()</a></code> and always use that function’s
+own defaults; call <code><a href="../reference/iso_morphology_candidates.html">iso_morphology_candidates()</a></code> directly if
+these need tuning.</p>
+</div>
+<div class="section level3">
+<h3 id="carbon-isotope-ratio-cir-and-elemental-isotope-pattern-eips-validation">Carbon isotope-ratio (CIR) and elemental isotope-pattern (EIPS)
+validation<a class="anchor" aria-label="anchor" href="#carbon-isotope-ratio-cir-and-elemental-isotope-pattern-eips-validation"></a>
+</h3>
+<ul>
+<li>
+<code>iso_min_score</code>: the minimum <code>score_final</code>
+from <code>morph_results</code> required for a candidate pair to be
+evaluated at all by <code><a href="../reference/cir_score.html">cir_score()</a></code>/<code><a href="../reference/eips_score.html">eips_score()</a></code>
+(passed as their <code>min_score_final</code> argument). Raising it
+restricts CIR/EIPS validation to the most spatially convincing
+morphology candidates; lowering it lets weaker spatial matches still be
+checked against the expected isotope ratio, at the cost of evaluating
+more candidates that are likely to fail.</li>
+<li>
+<code>cir_rel_tol</code>: relative-error tolerance between the
+observed and theoretical carbon isotope ratio used by
+<code><a href="../reference/cir_score.html">cir_score()</a></code> to set
+<code>is_valid_c13_raw</code>/<code>cir_score</code>. A tighter
+tolerance is stricter about accepting a C13 M+1 candidate as
+genuine.</li>
+<li>
+<code>eips_rel_tol</code>: the same kind of tolerance for
+<code><a href="../reference/eips_score.html">eips_score()</a></code>’s N/O/S/Cl/Br ratio matching.</li>
+<li>
+<code>ratio_method</code>: <code>"sum"</code>, <code>"mean"</code>
+or <code>"median"</code> - how the per-pixel isotope/monoisotopic
+intensity ratio is aggregated into a single observed ratio, shared by
+<code><a href="../reference/cir_score.html">cir_score()</a></code> and <code><a href="../reference/eips_score.html">eips_score()</a></code>.
+<code>"sum"</code> (aggregating intensities before dividing) is
+recommended for MSI isotope-ratio estimation and is the default;
+<code>"mean"</code>/<code>"median"</code> aggregate the per-pixel ratios
+directly instead, which can behave differently when many pixels have low
+or zero intensity.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="adduct-detection">Adduct detection<a class="anchor" aria-label="anchor" href="#adduct-detection"></a>
+</h3>
+<p>These parameters are forwarded to <code><a href="../reference/adduct_candidates.html">adduct_candidates()</a></code>
+(pairwise adduct edges) and, where noted, to
+<code><a href="../reference/adduct_families.html">adduct_families()</a></code> (grouping edges into families).</p>
+<ul>
+<li>
+<code>adduct_tol_ppm</code>: ppm tolerance used to search for a
+feature pair matching an expected adduct-to-adduct m/z difference.</li>
+<li>
+<code>adduct_neutral_tol_ppm</code>: ppm tolerance used to score how
+well the neutral masses implied by the two candidate adducts agree with
+each other (<code>score_mass</code>); this value was chosen for
+high-resolution Orbitrap data and should be revisited for other
+instruments or preprocessing settings.</li>
+<li>
+<code>adduct_method</code>, <code>adduct_transform</code>: the same
+kind of spatial-similarity metric and intensity transform as
+<code>morph_method</code>/<code>morph_transform</code> above, but
+applied to adduct-pair detection instead of isotope-pair detection - the
+two detection steps are independent and can use different settings.</li>
+<li>
+<code>adduct_min_quantile</code>: low-intensity quantile filter;
+pixels are only kept for the similarity calculation when both features
+in the pair are above their own quantile threshold.</li>
+<li>
+<code>adduct_clip_negatives</code>: if <code>TRUE</code> (default),
+negative intensities are truncated to zero before
+<code>adduct_transform</code> is applied.</li>
+<li>
+<code>adduct_min_score</code>: this single value is reused in three
+places, which is worth knowing when tuning it: as
+<code><a href="../reference/adduct_candidates.html">adduct_candidates()</a></code>’s <code>min_score_spatial</code>
+(minimum spatial score for an edge to be kept at all), as
+<code><a href="../reference/adduct_families.html">adduct_families()</a></code>’s <code>min_score_adduct</code> (minimum
+score for an edge to be used when grouping edges into families), and as
+<code><a href="../reference/build_candidate_annotations.html">build_candidate_annotations()</a></code>’s
+<code>adduct_min_score</code> (the threshold on
+<code>adduct_spatial_score</code> counted as multi-evidence support for
+a <code>broad_db_only</code> candidate’s <code>confidence_class</code>).
+Raising it makes adduct detection, family grouping and confidence
+classification all stricter at once.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="neutral-mass-clustering-and-candidate-matching">Neutral mass clustering and candidate matching<a class="anchor" aria-label="anchor" href="#neutral-mass-clustering-and-candidate-matching"></a>
+</h3>
+<ul>
+<li>
+<code>neutral_cluster_ppm</code>: ppm tolerance used to group
+neutral masses inferred from different adduct families (or single-adduct
+hypotheses) into the same <code>neutral_mass_id</code>, in
+<code><a href="../reference/assign_neutral_mass_clusters.html">assign_neutral_mass_clusters()</a></code>.</li>
+<li>
+<code>candidate_ppm_tol</code>: ppm tolerance for matching an
+inferred neutral mass against
+<code>compound_db</code>/<code>standards_db</code> entries.</li>
+<li>
+<code>top_n</code>: maximum number of compound candidates kept per
+neutral mass. Use <code>NULL</code> to retain every candidate within
+<code>candidate_ppm_tol</code> - useful when a neutral mass should not
+silently drop a candidate that would otherwise link to the standards
+library, at the cost of a longer <code>candidate_annotations</code>
+table.</li>
+<li>
+<code>include_single_adduct</code>: if <code>TRUE</code> (default),
+<code>candidate_annotations</code> also includes single-adduct
+hypotheses for features that were not assigned to any adduct family
+(<code><a href="../reference/build_single_adduct_candidates.html">build_single_adduct_candidates()</a></code>). Set to
+<code>FALSE</code> to restrict <code>candidate_annotations</code> to
+family-derived candidates only, which also changes what
+<code><a href="../reference/build_neutral_mass_candidates.html">build_neutral_mass_candidates()</a></code> sees when it reuses
+<code>candidate_annotations</code> internally.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="general-control">General control<a class="anchor" aria-label="anchor" href="#general-control"></a>
+</h3>
+<ul>
+<li>
+<code>quiet</code>: if <code>FALSE</code> (default), prints a
+numbered progress message for each of the 8 workflow stages, plus any
+database-loading notices.</li>
+<li>
+<code>multi_image</code>: if <code>TRUE</code>, tells the workflow
+that <code>pkm</code> contains more than one image/run concatenated by
+pixel (for example several Cardinal runs, or an rMSI2 matrix with more
+than one entry in <code>numPixels</code>). Annotation stays fully pooled
+across images - correlation, isotope, adduct and candidate scoring are
+computed jointly over all pixels either way. What changes is purely
+spatial: the tile-based consistency step of
+<code><a href="../reference/iso_morphology_candidates.html">iso_morphology_candidates()</a></code> is disabled (pixel coordinates
+are local to each image and may overlap between images, which would
+otherwise mix pixels from unrelated images into the same spatial tile),
+and a per-pixel image identity is attached to the returned
+<code>pkm</code> as <code>image_id</code>, which
+<code><a href="../reference/plot_ion_image.html">plot_ion_image()</a></code> then uses to draw one panel per image
+instead of overlapping them (see <code><a href="../reference/plot_ion_image.html">?plot_ion_image</a></code>). Default
+<code>FALSE</code>, which leaves the workflow exactly as it was in
+previous package versions.</li>
+</ul>
+<p><strong>A note on memory.</strong> <code>res$pkm</code> (the list
+element returned alongside all the evidence tables above) is a full copy
+of whatever <code>pkm</code> object was passed in, not a reference to it
+- if <code>pkm</code> carries several gigabytes of intensity data, as a
+real MSI dataset typically does,
+<code>res &lt;- run_peakguider_workflow(pkm = pkm, ...)</code>
+momentarily doubles that memory usage, and keeps it doubled for as long
+as both <code>pkm</code> and <code>res$pkm</code> stay alive. Once the
+rest of <code>res</code> (the evidence and candidate tables) is what’s
+actually needed going forward, it’s worth freeing that copy with
+<code>res$pkm &lt;- NULL</code> (<code><a href="https://rdrr.io/r/base/gc.html" class="external-link">gc()</a></code> afterwards if the
+memory needs to come back immediately rather than whenever R decides to
+collect it on its own) - the original <code>pkm</code> object, still
+sitting in the user’s own enviroment, works just as well for any later
+call to <code><a href="../reference/plot_ion_image.html">plot_ion_image()</a></code>, <code><a href="../reference/plot_isotope_pair.html">plot_isotope_pair()</a></code>
+or <code><a href="../reference/plot_adduct_family.html">plot_adduct_family()</a></code>.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="isotope-morphology-candidates">Isotope morphology candidates<a class="anchor" aria-label="anchor" href="#isotope-morphology-candidates"></a>
@@ -316,6 +587,39 @@ also found for the same M+0.</li>
 supporting C13 M+2 feature, when <code>has_C13_M2</code> is
 <code>TRUE</code>.</li>
 </ul>
+<div class="section level3">
+<h3 id="visualising-a-cir-validated-isotope-pair">Visualising a CIR-validated isotope pair<a class="anchor" aria-label="anchor" href="#visualising-a-cir-validated-isotope-pair"></a>
+</h3>
+<p><code><a href="../reference/plot_isotope_pair.html">plot_isotope_pair()</a></code> reuses <code><a href="../reference/plot_ion_image.html">plot_ion_image()</a></code>
+to draw the M0 and candidate isotope feature side by side, and adds a
+third panel automatically when a <code>cir_row</code> is supplied and
+its <code>has_C13_M2</code> is <code>TRUE</code>. The example below uses
+the real brain_2 dataset with MALDI matrix pixels removed (see the note
+under “Visualising a single feature” below for why): feature 341 (m/z
+212.0324, one member of the adduct family revisited later in this
+vignette) and its CIR row (<code>idx_M0 = 341</code>,
+<code>idx_M1 = 349</code>) is a <code>"high_agreement"</code> C13 M+1
+pair (<code>R_obs = 0.109</code> vs <code>R_theo = 0.114</code>); this
+particular pair has no validated C13 M+2 satellite; only the M0/M+1
+panels are drawn.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># cir_row is the single row of res_real$cir_results for idx_M0 = 341,</span></span>
+<span><span class="co"># idx_M1 = 349 (res_real is the saved run_peakguider_workflow() result for</span></span>
+<span><span class="co"># the real brain_2 dataset with matrix pixels removed, kept outside the</span></span>
+<span><span class="co"># package repository).</span></span>
+<span><span class="fu"><a href="../reference/plot_isotope_pair.html">plot_isotope_pair</a></span><span class="op">(</span></span>
+<span>  <span class="va">pkm_real</span>,</span>
+<span>  idx_M0 <span class="op">=</span> <span class="fl">341</span>,</span>
+<span>  idx_cand <span class="op">=</span> <span class="fl">349</span>,</span>
+<span>  cir_row <span class="op">=</span> <span class="va">cir_row</span>,</span>
+<span>  clip_quantile <span class="op">=</span> <span class="fl">0.99</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="../reference/figures/vignette-isotope-pair-cir-real.png" class="r-plt" alt="" width="70%"></p>
+<p>The M0 and M+1 panels show essentially the same spatial pattern, as
+expected for a genuine isotope pair of the same ion (note the different
+colour scale on each panel - every panel is independently normalised to
+its own intensity range, not to a shared scale).</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="elemental-isotope-pattern-eips-results">Elemental isotope-pattern (EIPS) results<a class="anchor" aria-label="anchor" href="#elemental-isotope-pattern-eips-results"></a>
@@ -323,7 +627,7 @@ supporting C13 M+2 feature, when <code>has_C13_M2</code> is
 <p><code>eips_results</code> is useful when we want to see elemental
 isotope-pattern evidence for non-carbon elements (N, O, S, Cl, Br), and
 whether it is also supported by a database-derived formula lookup.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">eips_results</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">idx_M0</span>,</span>
@@ -395,6 +699,41 @@ element count from the matched database formula entry, when
 <code>neutral_err_ppm</code>: ppm error between
 <code>neutral_mass</code> and <code>mz_mono_db</code>.</li>
 </ul>
+<div class="section level3">
+<h3 id="visualising-an-eips-supported-isotope-pair">Visualising an EIPS-supported isotope pair<a class="anchor" aria-label="anchor" href="#visualising-an-eips-supported-isotope-pair"></a>
+</h3>
+<p>An EIPS pair is drawn exactly the same way as the CIR pair just
+above: the same <code><a href="../reference/plot_isotope_pair.html">plot_isotope_pair()</a></code> function, reusing
+<code><a href="../reference/plot_ion_image.html">plot_ion_image()</a></code> for a side-by-side M0/candidate panel
+pair. The only differences in how it’s called are that
+<code>eips_row</code> is passed in instead of <code>cir_row</code>,
+there is no M+2 panel (EIPS pairs have no equivalent of the CIR M+2
+satelite, so only the two panels are ever drawn), and the subtitle
+reports the evaluated element and <code>score_eips</code> rather than
+<code>R_obs</code>/<code>R_theo</code>/<code>cir_class</code>.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># one_eips_row is a single row of res$eips_results already identified as a</span></span>
+<span><span class="co"># pair worth inspecting, e.g. res$eips_results[1, ]</span></span>
+<span><span class="fu"><a href="../reference/plot_isotope_pair.html">plot_isotope_pair</a></span><span class="op">(</span></span>
+<span>  <span class="va">pkm</span>,</span>
+<span>  idx_M0 <span class="op">=</span> <span class="va">one_eips_row</span><span class="op">$</span><span class="va">idx_M0</span>,</span>
+<span>  idx_cand <span class="op">=</span> <span class="va">one_eips_row</span><span class="op">$</span><span class="va">idx_cand</span>,</span>
+<span>  eips_row <span class="op">=</span> <span class="va">one_eips_row</span>,</span>
+<span>  clip_quantile <span class="op">=</span> <span class="fl">0.99</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>In the real brain_2 result used in this vignette, feature 134 (m/z
+146.0604) carries N-EIPS evidence against feature 138
+(<code>element = "N"</code>, <code>score_eips = 0.809</code>,
+<code>has_formula_support = TRUE</code>) - but only in the version of
+that dataset <strong>before</strong> matrix pixels were removed (every
+other real-data example further bellow uses the matrix-removed version,
+see “Visualising a single feature”): once matrix pixels are excluded,
+this particular pattern is no longer detected at all for that feature,
+not even as a failed candidate. It’s a good reminder that EIPS support,
+like every evidence layer in PeakGuideR, is a property of the peak
+matrix actually supplied, not an intrinsic property of the compound
+itself.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="feature-level-summary">Feature-level summary<a class="anchor" aria-label="anchor" href="#feature-level-summary"></a>
@@ -411,7 +750,7 @@ reports whether each feature has support for:</p>
 <li>belonging to an adduct family;</li>
 <li>contributing to an inferred neutral mass.</li>
 </ul>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">feature_summary</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">idx</span>,</span>
@@ -463,6 +802,38 @@ strongest adduct family.</li>
 <code>neutral_mass_consensus</code>: inferred neutral mass
 associated with the main adduct family.</li>
 </ul>
+<div class="section level3">
+<h3 id="visualising-a-single-feature">Visualising a single feature<a class="anchor" aria-label="anchor" href="#visualising-a-single-feature"></a>
+</h3>
+<p>Once a feature of interest has been identified in
+<code>feature_summary</code> (by its <code>idx</code>),
+<code><a href="../reference/plot_ion_image.html">plot_ion_image()</a></code> draws its spatial ion image directly from
+<code>pkm</code>. This example, and every other real-data example in
+this vignette except the EIPS one above (see the note there for why),
+are not run on <code>example_pkm</code>, but on a real mouse brain
+tissue dataset (CHCA+DEA ionic matrix), acquired and originally
+published in Mahamdi et al. (2026) (see “References” at the end of this
+vignette) and used throughout the package’s own validation work,
+<strong>after the MALDI matrix pixels were removed</strong> (the same
+matrix-removal analysis used to prepare figures for the associated
+manuscript) - matrix pixels otherwise tend to dominate a ring around the
+tissue section edge, which would be misleading in a feature-level ion
+image.</p>
+<p>The feature shown here, index 341 (m/z 212.0324 in that dataset), is
+one member of the adduct family revisited throughout the next few
+sections - its <code>[M+Na]+</code> form.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># `pkm_real` is the peak matrix underlying the real brain-tissue MALDI-MSI</span></span>
+<span><span class="co"># dataset used for this package's validation work, with MALDI matrix pixels</span></span>
+<span><span class="co"># removed, kept outside the package repository - this chunk is shown for</span></span>
+<span><span class="co"># reference only (eval=FALSE) and was run once to produce the PNG rendered</span></span>
+<span><span class="co"># below with knitr::include_graphics(), so the vignette itself never needs</span></span>
+<span><span class="co"># to read that external file.</span></span>
+<span><span class="fu"><a href="../reference/plot_ion_image.html">plot_ion_image</a></span><span class="op">(</span><span class="va">pkm_real</span>, idx <span class="op">=</span> <span class="fl">341</span>, clip_quantile <span class="op">=</span> <span class="fl">0.99</span><span class="op">)</span></span></code></pre></div>
+<p><img src="../reference/figures/vignette-ion-image-real.png" class="r-plt" alt="" width="70%"></p>
+<p><code>clip_quantile</code> caps the handful of most intense pixels
+before mapping to colour, so a few saturated spots do not flatten the
+rest of the scale.</p>
 <p>A feature can have more than one type of evidence. For example, the
 same m/z feature may be interpreted as a monoisotopic peak with C13
 support and also as a member of an adduct family.</p>
@@ -480,7 +851,7 @@ individual relationships that led to the final feature-level
 summary.</p>
 <p>It collects relationships detected by different modules into a common
 table.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">relation_table</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">from_idx</span>,</span>
@@ -526,13 +897,14 @@ the connected features.</li>
 <p>This table is useful for tracing why a given feature was assigned a
 particular role in <code>feature_summary</code>.</p>
 </div>
+</div>
 <div class="section level2">
 <h2 id="adduct-edges">Adduct edges<a class="anchor" aria-label="anchor" href="#adduct-edges"></a>
 </h2>
 <p><code>adduct_edges</code> is useful when we want to see the pairwise
 adduct-compatible relationships used to build
 <code>adduct_families</code>.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">adduct_edges</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">idx_i</span>,</span>
@@ -589,7 +961,7 @@ meets <code>min_score_spatial</code>.</li>
 <p><code>adduct_families</code> groups pairwise adduct relationships
 into families of features that are compatible with the same inferred
 neutral mass.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">adduct_families</span><span class="op">)</span></span></code></pre></div>
 <p>The object contains three components:</p>
 <ul>
@@ -600,7 +972,7 @@ their inferred adduct roles;</p></li>
 <li><p><code>family_edges</code>: pairwise adduct relationships
 supporting each family.</p></li>
 </ul>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">adduct_families</span><span class="op">$</span><span class="va">family_summary</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -665,6 +1037,43 @@ those edges.</li>
 <li>
 <code>family_id</code>: the family the edge was assigned to.</li>
 </ul>
+<div class="section level3">
+<h3 id="visualising-an-adduct-family">Visualising an adduct family<a class="anchor" aria-label="anchor" href="#visualising-an-adduct-family"></a>
+</h3>
+<p><code><a href="../reference/plot_adduct_family.html">plot_adduct_family()</a></code> draws one ion-image panel per
+feature in a family, labelled with its adduct role, and arranged
+automatically into a grid. The example below uses the same neutral mass
+as “Visualising a single feature” and “Visualising a CIR-validated
+isotope pair” above, in the matrix-removed brain_2 result: a 6-member
+family (<code>family_id = 22</code>,
+<code>[M+H-H2O]+</code>/<code>[M+H]+</code>/
+<code>[M+Na]+</code>/<code>[M+K]+</code>/<code>[M+2Na-H]+</code>/<code>[M+2K-H]+</code>,
+consensus neutral mass 189.0432). Its cross-database identity resolves
+to <code>KYNURENATE</code> in the standard-adduct library
+(<code>priority_score = 0.822</code>,
+<code>confidence_class = "cross_db_linked_adduct_recovered"</code>), and
+its <code>mean_score_adduct</code> (0.636) is among the highest of any
+family with more than 2 members in that dataset, so its member panels
+are a clear illustration of what a coherent family looks like
+spatially.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># adduct_fam_real is res_real$adduct_families for the real brain_2 result</span></span>
+<span><span class="co"># with matrix pixels removed.</span></span>
+<span><span class="fu"><a href="../reference/plot_adduct_family.html">plot_adduct_family</a></span><span class="op">(</span></span>
+<span>  <span class="va">pkm_real</span>,</span>
+<span>  family_id <span class="op">=</span> <span class="fl">22</span>,</span>
+<span>  adduct_fam <span class="op">=</span> <span class="va">adduct_fam_real</span>,</span>
+<span>  clip_quantile <span class="op">=</span> <span class="fl">0.99</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="../reference/figures/vignette-adduct-family-real.png" class="r-plt" alt="" width="85%"></p>
+<p>Four of the six features assigned to this family share essentially
+the same spatial distribution across the tissue section, which is the
+spatial signature <code><a href="../reference/adduct_candidates.html">adduct_candidates()</a></code> looks for when
+proposing them as different adduct forms of the same inferred neutral
+mass in the first place; the <code>[M+2Na-H]+</code> and
+<code>[M+2K-H]+</code> panels are visibly noisier, consistent with their
+much lower mean intensity.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="peak-relationship-network">Peak relationship network<a class="anchor" aria-label="anchor" href="#peak-relationship-network"></a>
@@ -681,7 +1090,7 @@ individual peaks.</p>
 </h3>
 <p>First, the complete relation table can be visualised as an
 exploratory evidence network:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span></span>
 <span>  relation_table <span class="op">=</span> <span class="va">res</span>,</span>
 <span>  min_score <span class="op">=</span> <span class="fl">0.3</span>,</span>
@@ -697,7 +1106,7 @@ the feature network.</p>
 <p>For interpretation, it is often more useful to inspect one adduct
 family at a time. Here, we select one of the strongest adduct families
 detected in the example workflow:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">network_family_id</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">$</span><span class="va">adduct_families</span><span class="op">$</span><span class="va">family_summary</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span></span>
 <span>    <span class="va">family_size</span> <span class="op">&gt;</span> <span class="fl">1</span>,</span>
@@ -722,7 +1131,7 @@ detected in the example workflow:</p>
 <span>    <span class="va">feature_idx</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p>The selected family can then be visualised interactively:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span></span>
 <span>  relation_table <span class="op">=</span> <span class="va">res</span>,</span>
 <span>  family_id <span class="op">=</span> <span class="va">network_family_id</span>,</span>
@@ -740,7 +1149,7 @@ roles, evidence score and inferred neutral mass.</p>
 </h3>
 <p>The <code>idx_focus</code> argument can be used to inspect the local
 neighbourhood of a specific feature:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="fu"><a href="../reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span></span>
 <span>  relation_table <span class="op">=</span> <span class="va">res</span>,</span>
@@ -753,6 +1162,53 @@ neighbourhood of a specific feature:</p>
 features should be interpreted as putative evidence-supported
 relationships, not as definitive compound annotations.</p>
 </div>
+<div class="section level3">
+<h3 id="real-data-example">Real-data example<a class="anchor" aria-label="anchor" href="#real-data-example"></a>
+</h3>
+<p>The three examples above run live on <code>example_pkm</code>, the
+small dataset bundled with the package. <code><a href="../reference/plot_peak_network.html">plot_peak_network()</a></code>
+returns an interactive <code>visNetwork</code> htmlwidget that embeds
+its underlying node/edge data directly in the page, so this vignette
+does not build one from real analysis data - that would mean shipping
+real per-feature evidence values inside the package’s own documentation.
+Instead, the figure below is a static screenshot of the same kind of
+focused adduct-family view as above, taken once from the real brain_2
+result (matrix pixels removed), for the same family 22 used in
+“Visualising an adduct family”:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># res_real is the saved run_peakguider_workflow() result for the real</span></span>
+<span><span class="co"># brain_2 dataset with matrix pixels removed. htmlwidgets::saveWidget()</span></span>
+<span><span class="co"># writes the interactive widget to a standalone HTML file, which was then</span></span>
+<span><span class="co"># opened in a browser to capture the static screenshot shown below (edge</span></span>
+<span><span class="co"># labels turned off here, since they overlapped the nodes in this</span></span>
+<span><span class="co"># particular layout).</span></span>
+<span><span class="va">net</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_peak_network.html">plot_peak_network</a></span><span class="op">(</span></span>
+<span>  relation_table <span class="op">=</span> <span class="va">res_real</span>,</span>
+<span>  family_id <span class="op">=</span> <span class="fl">22</span>,</span>
+<span>  min_score <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  show_edge_labels <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu">htmlwidgets</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/htmlwidgets/man/saveWidget.html" class="external-link">saveWidget</a></span><span class="op">(</span><span class="va">net</span>, <span class="st">"network_family22.html"</span>, selfcontained <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><img src="../reference/figures/vignette-peak-network-real.png" class="r-plt" alt="" width="55%"></p>
+<p>The four edges reproduce the pairwise adduct relationships listed
+under <code>family_edges</code> for this family, as two separate
+connected components: a chain <code>206</code> ([M+H-H2O]+) -
+<code>272</code> ([M+H]+) - <code>341</code> - <code>415</code>, and a
+separate pair <code>395</code> - <code>512</code>; edge thickness
+reflects <code>score_adduct</code>.</p>
+<p>Features <code>341</code> and <code>512</code> both belong to more
+than one adduct family in this dataset (<code>341</code> to families 16,
+22 and 28; <code>512</code> to 22 and 31). When a <code>family_id</code>
+is supplied, as here, every node is labelled with its role <em>within
+that family</em> - matching what “Visualising an adduct family” above
+shows for the same feature (<code>[M+Na]+</code> for <code>341</code>,
+<code>[M+2K-H]+</code> for <code>512</code>) - rather than whichever of
+its roles has the best <code>mean_edge_score</code> across the whole
+dataset. That dataset-wide role is still what is used when no
+<code>family_id</code> is given (the full evidence network further
+above); there, feature <code>341</code> would be labelled by its
+family-28 role and <code>512</code> by its family-31 role instead.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="neutral-mass-candidates">Neutral-mass candidates<a class="anchor" aria-label="anchor" href="#neutral-mass-candidates"></a>
@@ -761,7 +1217,7 @@ relationships, not as definitive compound annotations.</p>
 table.</p>
 <p>It contains one row per inferred neutral mass and candidate compound
 match.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">neutral_mass_candidates</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">neutral_mass_id</span>,</span>
@@ -829,7 +1285,7 @@ identity-resolution logic and for cases flagged as
 </h2>
 <p>A quick summary of database and standard-adduct support can be
 obtained with:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">neutral_mass_candidates</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
 <span>    n_rows <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -867,7 +1323,7 @@ then a shared HMDB/ChEBI id), stopping at the first level that matches.
 A match on molecular formula alone is never treated as identity; such
 candidates are kept as separate rows and cross-referenced through
 <code>possible_link_formula_only</code> for manual review.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">candidate_annotations</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">neutral_mass_id</span>,</span>
@@ -966,18 +1422,18 @@ demonstration.</p>
 databases from Zenodo: <a href="https://doi.org/10.5281/zenodo.20705395" class="external-link uri">https://doi.org/10.5281/zenodo.20705395</a></p>
 <p>After downloading the files, they can be loaded manually replacing
 the paths below with the real local paths</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">compound_db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"path/to/compound_mass_database"</span><span class="op">)</span></span>
 <span><span class="va">standards_db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"path/to/adducts_database"</span><span class="op">)</span></span></code></pre></div>
 <p>or using the helper function (also replace the file paths below with
 the local paths where the downloaded database files were saved.:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dbs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_peakguider_databases.html">load_peakguider_databases</a></span><span class="op">(</span></span>
 <span>  compound_db_path <span class="op">=</span> <span class="st">"path/to/compound_mass_database.rds"</span>,</span>
 <span>  standards_db_path <span class="op">=</span> <span class="st">"path/to/standards_adduct_database.rds"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Then pass them to the workflow:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_peakguider_workflow.html">run_peakguider_workflow</a></span><span class="op">(</span></span>
 <span>  pkm <span class="op">=</span> <span class="va">pkm</span>,</span>
 <span>  ion_mode <span class="op">=</span> <span class="st">"pos"</span>,</span>
@@ -1002,6 +1458,20 @@ validation.</li>
 <p>The recommended interpretation is to use PeakGuideR outputs to
 prioritise candidate annotations for downstream validation.</p>
 </div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<p>The ion images shown in several of the real-data examples thoughout
+this vignette are extracted from the mouse brain tissue dataset
+published in Mahamdi et al. (2026), cited bellow. The rest of the
+vignette - the workflow itself, its parameters and every other table -
+is not specific to that dataset:</p>
+<p>Mahamdi, T.; Moltó, N.; Arasa, M.; Giné, R.; Rofes, J.;
+García-Altares, M.; Vinaixa, M.; Yanes, O. “Ionic Solid Matrices Applied
+via Low-Temperature Evaporation Enable High-Resolution and Sensitive
+MALDI Imaging of Metabolites.” <em>J. Am. Soc. Mass Spectrom.</em> 2026.
+DOI: <a href="https://doi.org/10.1021/jasms.6c00219" class="external-link">10.1021/jasms.6c00219</a>.</p>
+</div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
 </div>
@@ -1009,7 +1479,7 @@ prioritise candidate annotations for downstream validation.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Nadia Molto.</p>
+  <p>Developed by Nadia Moltó.</p>
 </div>
 
 <div class="pkgdown-footer-right">

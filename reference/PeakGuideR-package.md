@@ -26,10 +26,10 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Nadia Molto <nadia.molto@gmail.com>
+**Maintainer**: Nadia Molt\<c3\>\<b3\> <nadia.molto@gmail.com>
 ([ORCID](https://orcid.org/0009-0003-0042-4997))
 
 Authors:
 
-- Nadia Molto <nadia.molto@gmail.com>
+- Nadia Molt\<c3\>\<b3\> <nadia.molto@gmail.com>
   ([ORCID](https://orcid.org/0009-0003-0042-4997))

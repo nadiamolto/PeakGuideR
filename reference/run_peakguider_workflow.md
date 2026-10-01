@@ -186,7 +186,57 @@ run_peakguider_workflow(
 
 ## Value
 
-A list with all main PeakGuideR workflow outputs.
+A list with all main PeakGuideR workflow outputs:
+
+- `morph_results`: isotope-morphology candidates (the output of
+  [`iso_morphology_candidates()`](https://nadiamolto.github.io/PeakGuideR/reference/iso_morphology_candidates.md)),
+  one candidate peak pair per row.
+
+- `cir_results`: carbon isotope-ratio (CIR) validation for the M0/M+1
+  pairs in `morph_results`, including optional M+2 support.
+
+- `eips_results`: elemental isotope-pattern (EIPS) validation for N, O,
+  S, Cl and Br.
+
+- `adduct_edges`: candidate adduct peak pairs, before grouping into
+  families.
+
+- `adduct_families`: adduct pairs grouped into families by consensus
+  neutral mass.
+
+- `relation_table`: a single table unifying every peak-to-peak relation
+  (CIR, isotope morphology, EIPS, adduct family).
+
+- `feature_summary`: one row per detected peak/feature, with the role it
+  plays in each type of evidence.
+
+- `neutral_mass_candidates`: a per-inferred-neutral-mass summary.
+
+- `candidate_annotations`: the final compound candidate annotations (one
+  row per neutral mass and candidate identity).
+
+- `pkm`: the peak matrix object used for the analysis (with `image_id`
+  added when `multi_image = TRUE`) - see the "Memory usage" section
+  below for why it can be worth freeing.
+
+- `parameters`: a list with every parameter value used for the call.
+
+## Memory usage
+
+The returned `pkm` element is a copy of the `pkm` argument (with
+`image_id` attached when `multi_image = TRUE`), not a reference to it.
+For a real MSI dataset of several gigabytes, keeping both the original
+`pkm` object and `res$pkm` alive at the same time doubles that memory
+footprint for no benefit. Once `res$pkm` is no longer needed from `res`
+itself, it can be dropped with `res$pkm <- NULL` (followed by
+[`gc()`](https://rdrr.io/r/base/gc.html) if the memory needs to be
+returned to the OS immediately rather than whenever R next collects);
+the original `pkm` object already in the user's environment can still be
+passed directly to
+[`plot_ion_image()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_ion_image.md),
+[`plot_isotope_pair()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_isotope_pair.md)
+and
+[`plot_adduct_family()`](https://nadiamolto.github.io/PeakGuideR/reference/plot_adduct_family.md).
 
 ## Examples
 

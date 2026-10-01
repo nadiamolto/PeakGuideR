@@ -230,7 +230,42 @@ unchanged.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list with all main PeakGuideR workflow outputs.</p>
+    <p>A list with all main PeakGuideR workflow outputs:</p><ul><li><p><code>morph_results</code>: isotope-morphology candidates (the output of
+<code><a href="iso_morphology_candidates.html">iso_morphology_candidates()</a></code>), one candidate peak pair per row.</p></li>
+<li><p><code>cir_results</code>: carbon isotope-ratio (CIR) validation for the
+M0/M+1 pairs in <code>morph_results</code>, including optional M+2 support.</p></li>
+<li><p><code>eips_results</code>: elemental isotope-pattern (EIPS) validation for
+N, O, S, Cl and Br.</p></li>
+<li><p><code>adduct_edges</code>: candidate adduct peak pairs, before grouping into
+families.</p></li>
+<li><p><code>adduct_families</code>: adduct pairs grouped into families by
+consensus neutral mass.</p></li>
+<li><p><code>relation_table</code>: a single table unifying every peak-to-peak
+relation (CIR, isotope morphology, EIPS, adduct family).</p></li>
+<li><p><code>feature_summary</code>: one row per detected peak/feature, with the
+role it plays in each type of evidence.</p></li>
+<li><p><code>neutral_mass_candidates</code>: a per-inferred-neutral-mass summary.</p></li>
+<li><p><code>candidate_annotations</code>: the final compound candidate
+annotations (one row per neutral mass and candidate identity).</p></li>
+<li><p><code>pkm</code>: the peak matrix object used for the analysis (with
+<code>image_id</code> added when <code>multi_image = TRUE</code>) - see the "Memory usage"
+section below for why it can be worth freeing.</p></li>
+<li><p><code>parameters</code>: a list with every parameter value used for the call.</p></li>
+</ul></div>
+    <div class="section level2">
+    <h2 id="memory-usage">Memory usage<a class="anchor" aria-label="anchor" href="#memory-usage"></a></h2>
+
+
+<p>The returned <code>pkm</code> element is a copy of the <code>pkm</code> argument (with <code>image_id</code>
+attached when <code>multi_image = TRUE</code>), not a reference to it. For a real MSI
+dataset of several gigabytes, keeping both the original <code>pkm</code> object and
+<code>res$pkm</code> alive at the same time doubles that memory footprint for no
+benefit. Once <code>res$pkm</code> is no longer needed from <code>res</code> itself, it can be
+dropped with <code>res$pkm &lt;- NULL</code> (followed by <code><a href="https://rdrr.io/r/base/gc.html" class="external-link">gc()</a></code> if the memory needs to
+be returned to the OS immediately rather than whenever R next collects);
+the original <code>pkm</code> object already in the user's environment can still be
+passed directly to <code><a href="plot_ion_image.html">plot_ion_image()</a></code>, <code><a href="plot_isotope_pair.html">plot_isotope_pair()</a></code> and
+<code><a href="plot_adduct_family.html">plot_adduct_family()</a></code>.</p>
     </div>
 
     <div class="section level2">
@@ -254,7 +289,7 @@ unchanged.</p></dd>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Nadia Molto.</p>
+  <p>Developed by Nadia Moltó.</p>
 </div>
 
 <div class="pkgdown-footer-right">
