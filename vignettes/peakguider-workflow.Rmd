@@ -48,7 +48,13 @@ The workflow can be run from 2 types of input:
 For the peak-matrix route, the object should contain at least:
 
 - `mass`: m/z values of detected features;
-- `intensity`: pixel-by-feature intensity matrix.
+- `intensity`: pixel-by-feature intensity matrix;
+- `image_id`: only needed when analysing more than one image/run at once
+  (`multi_image = TRUE` in `run_peakguider_workflow()`) - a per-pixel label
+  saying which image each pixel belongs too. If it's not already present,
+  it's derived automatically (see `derive_image_id_from_pkm()`); see
+  "General control" under "Workflow parameters" bellow for the full
+  explanation of `multi_image`.
 
 For example:
 
@@ -121,6 +127,181 @@ The evidence layers are built up in sequence, starting from isotope morphology a
 ending with adduct-family grouping, before the neutral-mass and candidate tables
 described later in this vignette are built. The next three sections cover the
 intermediate evidence tables in that order.
+
+# Workflow parameters
+
+`run_peakguider_workflow()` exposes every tunable parameter of the functions it
+calls internally, grouped below by the stage they affect. Most analyses only
+need `pkm`, `ion_mode` and `matrix`; the rest have defaults chosen for
+high-resolution Orbitrap MALDI-MSI data and are only worth revisiting for a
+specific reason, noted for each parameter below.
+
+## Input and ionisation mode
+
+- `pkm`: an rMSI2-style peak matrix, or a supported Cardinal
+  `MSImagingExperiment`, converted internally with `cardinal_to_peakmatrix()`.
+- `ion_mode`: `"pos"` or `"neg"`. Selects which half of `default_adducts()` is
+  used whenever `adducts` is not supplied, and which ion-mode-specific EIPS
+  formula-support step is run inside `eips_score()`.
+- `matrix`: the MALDI matrix used for the acquisition. It is only checked
+  against `"HCCA"` (case-insensitive); when it matches, standard-adduct
+  support is enabled in `build_candidate_annotations()`/
+  `build_neutral_mass_candidates()`. Use `matrix = NULL` for any other matrix,
+  since PeakGuideR currently ships a standard-adduct library only for
+  HCCA+DEA - passing an unsupported matrix name has the same effect as `NULL`
+  (standard-adduct support is simply not enabled), it is not an error.
+
+## Databases and adducts
+
+- `adducts`: an adduct definition table with `name`, `mode` and `mass`
+  columns (net m/z shift). If `NULL`, `default_adducts(ion_mode)` is used.
+  Supply a custom table to add an adduct not in the default list, restrict
+  detection to a subset of adducts, or work with an ion source where the
+  default mass shifts do not apply.
+- `compound_db`: the broad compound mass database used for neutral-mass
+  candidate matching. If `NULL`, the small example database bundled with the
+  package is loaded; for real analyses, download the full database from
+  Zenodo (see "Using full databases from Zenodo" below) and pass it here.
+- `standards_db`: the standard-adduct library used when `matrix = "HCCA"`. If
+  `NULL` and standard-adduct support is enabled, the bundled example library
+  is loaded; as with `compound_db`, real analyses should supply the full
+  Zenodo library.
+
+## Isotope morphology detection
+
+These parameters are forwarded to `iso_morphology_candidates()` and control
+how candidate isotope pairs are first detected, purely from mass difference
+and spatial/intensity similarity, before any isotope-ratio validation.
+
+- `morph_prefer_mode`: `"ppm"` (default) or `"dp"` - whether candidate isotope
+  partners are searched within a ppm mass window or a fixed index window
+  around the expected isotope shift. `"ppm"` is the natural choice for
+  accurate-mass data; `"dp"` may be preferable for lower-resolution or
+  unevenly mass-calibrated peak lists where a ppm window is not meaningful.
+- `morph_method`: `"pearson"`, `"cosine"` or `"spearman"` - the spatial
+  similarity metric between two features' intensity profiles. `"pearson"` is
+  the default; `"spearman"` trades some sensitivity for robustness to
+  outlier pixels, and `"cosine"` ignores the mean intensity level entirely.
+- `morph_transform`: `"none"`, `"log1p"` or `"zscore"` - an optional
+  transform applied to intensity profiles before computing the similarity
+  metric. `"log1p"` can help when a handful of very intense pixels would
+  otherwise dominate the correlation.
+- `morph_tile_blend`: `"median"`, `"p25"` or `"pass_rate"` - how per-tile
+  morphology scores (computed when spatial tiling is active; see
+  `multi_image` below) are summarised into `tile_summary`. `"pass_rate"`
+  (fraction of tiles above a threshold) is more conservative than the
+  `"median"` default when a pattern should hold consistently across the
+  whole image rather than only on average.
+
+Several parameters of `iso_morphology_candidates()` itself - `tol_dp`,
+`tile_min_pixels`, `tile_alpha`, `tile_threshold`, `min_score_keep` - are not
+exposed by `run_peakguider_workflow()` and always use that function's own
+defaults; call `iso_morphology_candidates()` directly if these need tuning.
+
+## Carbon isotope-ratio (CIR) and elemental isotope-pattern (EIPS) validation
+
+- `iso_min_score`: the minimum `score_final` from `morph_results` required
+  for a candidate pair to be evaluated at all by `cir_score()`/`eips_score()`
+  (passed as their `min_score_final` argument). Raising it restricts CIR/EIPS
+  validation to the most spatially convincing morphology candidates;
+  lowering it lets weaker spatial matches still be checked against the
+  expected isotope ratio, at the cost of evaluating more candidates that are
+  likely to fail.
+- `cir_rel_tol`: relative-error tolerance between the observed and
+  theoretical carbon isotope ratio used by `cir_score()` to set
+  `is_valid_c13_raw`/`cir_score`. A tighter tolerance is stricter about
+  accepting a C13 M+1 candidate as genuine.
+- `eips_rel_tol`: the same kind of tolerance for `eips_score()`'s N/O/S/Cl/Br
+  ratio matching.
+- `ratio_method`: `"sum"`, `"mean"` or `"median"` - how the per-pixel
+  isotope/monoisotopic intensity ratio is aggregated into a single observed
+  ratio, shared by `cir_score()` and `eips_score()`. `"sum"` (aggregating
+  intensities before dividing) is recommended for MSI isotope-ratio
+  estimation and is the default; `"mean"`/`"median"` aggregate the per-pixel
+  ratios directly instead, which can behave differently when many pixels
+  have low or zero intensity.
+
+## Adduct detection
+
+These parameters are forwarded to `adduct_candidates()` (pairwise adduct
+edges) and, where noted, to `adduct_families()` (grouping edges into
+families).
+
+- `adduct_tol_ppm`: ppm tolerance used to search for a feature pair matching
+  an expected adduct-to-adduct m/z difference.
+- `adduct_neutral_tol_ppm`: ppm tolerance used to score how well the neutral
+  masses implied by the two candidate adducts agree with each other
+  (`score_mass`); this value was chosen for high-resolution Orbitrap data
+  and should be revisited for other instruments or preprocessing settings.
+- `adduct_method`, `adduct_transform`: the same kind of spatial-similarity
+  metric and intensity transform as `morph_method`/`morph_transform` above,
+  but applied to adduct-pair detection instead of isotope-pair detection -
+  the two detection steps are independent and can use different settings.
+- `adduct_min_quantile`: low-intensity quantile filter; pixels are only kept
+  for the similarity calculation when both features in the pair are above
+  their own quantile threshold.
+- `adduct_clip_negatives`: if `TRUE` (default), negative intensities are
+  truncated to zero before `adduct_transform` is applied.
+- `adduct_min_score`: this single value is reused in three places, which is
+  worth knowing when tuning it: as `adduct_candidates()`'s
+  `min_score_spatial` (minimum spatial score for an edge to be kept at all),
+  as `adduct_families()`'s `min_score_adduct` (minimum score for an edge to
+  be used when grouping edges into families), and as
+  `build_candidate_annotations()`'s `adduct_min_score` (the threshold on
+  `adduct_spatial_score` counted as multi-evidence support for a
+  `broad_db_only` candidate's `confidence_class`). Raising it makes adduct
+  detection, family grouping and confidence classification all stricter at
+  once.
+
+## Neutral mass clustering and candidate matching
+
+- `neutral_cluster_ppm`: ppm tolerance used to group neutral masses inferred
+  from different adduct families (or single-adduct hypotheses) into the same
+  `neutral_mass_id`, in `assign_neutral_mass_clusters()`.
+- `candidate_ppm_tol`: ppm tolerance for matching an inferred neutral mass
+  against `compound_db`/`standards_db` entries.
+- `top_n`: maximum number of compound candidates kept per neutral mass. Use
+  `NULL` to retain every candidate within `candidate_ppm_tol` - useful when a
+  neutral mass should not silently drop a candidate that would otherwise
+  link to the standards library, at the cost of a longer
+  `candidate_annotations` table.
+- `include_single_adduct`: if `TRUE` (default), `candidate_annotations` also
+  includes single-adduct hypotheses for features that were not assigned to
+  any adduct family (`build_single_adduct_candidates()`). Set to `FALSE` to
+  restrict `candidate_annotations` to family-derived candidates only, which
+  also changes what `build_neutral_mass_candidates()` sees when it reuses
+  `candidate_annotations` internally.
+
+## General control
+
+- `quiet`: if `FALSE` (default), prints a numbered progress message for each
+  of the 8 workflow stages, plus any database-loading notices.
+- `multi_image`: if `TRUE`, tells the workflow that `pkm` contains more than
+  one image/run concatenated by pixel (for example several Cardinal runs, or
+  an rMSI2 matrix with more than one entry in `numPixels`). Annotation stays
+  fully pooled across images - correlation, isotope, adduct and candidate
+  scoring are computed jointly over all pixels either way. What changes is
+  purely spatial: the tile-based consistency step of
+  `iso_morphology_candidates()` is disabled (pixel coordinates are local to
+  each image and may overlap between images, which would otherwise mix
+  pixels from unrelated images into the same spatial tile), and a per-pixel
+  image identity is attached to the returned `pkm` as `image_id`, which
+  `plot_ion_image()` then uses to draw one panel per image instead of
+  overlapping them (see `?plot_ion_image`). Default `FALSE`, which leaves the
+  workflow exactly as it was in previous package versions.
+
+**A note on memory.** `res$pkm` (the list element returned alongside all the
+evidence tables above) is a full copy of whatever `pkm` object was passed
+in, not a reference to it - if `pkm` carries several gigabytes of intensity
+data, as a real MSI dataset typically does, `res <- run_peakguider_workflow(pkm = pkm, ...)`
+momentarily doubles that memory usage, and keeps it doubled for as long as
+both `pkm` and `res$pkm` stay alive. Once the rest of `res` (the evidence
+and candidate tables) is what's actually needed going forward, it's worth
+freeing that copy with `res$pkm <- NULL` (`gc()` afterwards if the memory
+needs to come back immediately rather than whenever R decides to collect it
+on its own) - the original `pkm` object, still sitting in the user's own
+enviroment, works just as well for any later call to `plot_ion_image()`,
+`plot_isotope_pair()` or `plot_adduct_family()`.
 
 # Isotope morphology candidates
 
@@ -198,6 +379,41 @@ Useful columns include:
 - `has_C13_M2`: whether a supporting C13 M+2 candidate was also found for the same M+0.
 - `idx_C13_M2`, `mz_C13_M2`, `score_C13_M2`: index, m/z and morphology score of the supporting C13 M+2 feature, when `has_C13_M2` is `TRUE`.
 
+## Visualising a CIR-validated isotope pair
+
+`plot_isotope_pair()` reuses `plot_ion_image()` to draw the M0 and candidate
+isotope feature side by side, and adds a third panel automatically when a
+`cir_row` is supplied and its `has_C13_M2` is `TRUE`. The example below uses
+the real brain_2 dataset with MALDI matrix pixels removed (see the note
+under "Visualising a single feature" below for why): feature 341 (m/z
+212.0324, one member of the adduct family revisited later in this vignette)
+and its CIR row (`idx_M0 = 341`, `idx_M1 = 349`) is a `"high_agreement"` C13
+M+1 pair (`R_obs = 0.109` vs `R_theo = 0.114`); this particular pair has no
+validated C13 M+2 satellite; only the M0/M+1 panels are drawn.
+
+```{r plot-isotope-pair-cir-real, eval=FALSE}
+# cir_row is the single row of res_real$cir_results for idx_M0 = 341,
+# idx_M1 = 349 (res_real is the saved run_peakguider_workflow() result for
+# the real brain_2 dataset with matrix pixels removed, kept outside the
+# package repository).
+plot_isotope_pair(
+  pkm_real,
+  idx_M0 = 341,
+  idx_cand = 349,
+  cir_row = cir_row,
+  clip_quantile = 0.99
+)
+```
+
+```{r plot-isotope-pair-cir-real-show, echo=FALSE, eval=TRUE, out.width="70%"}
+knitr::include_graphics("../man/figures/vignette-isotope-pair-cir-real.png")
+```
+
+The M0 and M+1 panels show essentially the same spatial pattern, as expected
+for a genuine isotope pair of the same ion (note the different colour scale
+on each panel - every panel is independently normalised to its own intensity
+range, not to a shared scale).
+
 # Elemental isotope-pattern (EIPS) results
 
 `eips_results` is useful when we want to see elemental isotope-pattern evidence
@@ -241,6 +457,39 @@ Useful columns include:
 - `neutral_mass`: neutral mass inferred from `mz_M0` and `adduct_name`.
 - `mz_mono_db`, `n_el_db`: monoisotopic mass and element count from the matched database formula entry, when `has_formula_support` is `TRUE`.
 - `neutral_err_ppm`: ppm error between `neutral_mass` and `mz_mono_db`.
+
+## Visualising an EIPS-supported isotope pair
+
+An EIPS pair is drawn exactly the same way as the CIR pair just above: the
+same `plot_isotope_pair()` function, reusing `plot_ion_image()` for a
+side-by-side M0/candidate panel pair. The only differences in how it's
+called are that `eips_row` is passed in instead of `cir_row`, there is no
+M+2 panel (EIPS pairs have no equivalent of the CIR M+2 satelite, so only
+the two panels are ever drawn), and the subtitle reports the evaluated
+element and `score_eips` rather than `R_obs`/`R_theo`/`cir_class`.
+
+```{r plot-isotope-pair-eips, eval=FALSE}
+# one_eips_row is a single row of res$eips_results already identified as a
+# pair worth inspecting, e.g. res$eips_results[1, ]
+plot_isotope_pair(
+  pkm,
+  idx_M0 = one_eips_row$idx_M0,
+  idx_cand = one_eips_row$idx_cand,
+  eips_row = one_eips_row,
+  clip_quantile = 0.99
+)
+```
+
+In the real brain_2 result used in this vignette, feature 134 (m/z 146.0604)
+carries N-EIPS evidence against feature 138 (`element = "N"`,
+`score_eips = 0.809`, `has_formula_support = TRUE`) - but only in the
+version of that dataset **before** matrix pixels were removed (every other
+real-data example further bellow uses the matrix-removed version, see
+"Visualising a single feature"): once matrix pixels are excluded, this
+particular pattern is no longer detected at all for that feature, not even
+as a failed candidate. It's a good reminder that EIPS support, like every
+evidence layer in PeakGuideR, is a property of the peak matrix actually
+supplied, not an intrinsic property of the compound itself.
 
 # Feature-level summary
 
@@ -289,6 +538,41 @@ Useful columns include:
 - `adduct_roles`: inferred adduct role or roles for the feature.
 - `main_adduct_role`: main adduct role assigned from the strongest adduct family.
 - `neutral_mass_consensus`: inferred neutral mass associated with the main adduct family.
+
+## Visualising a single feature
+
+Once a feature of interest has been identified in `feature_summary` (by its
+`idx`), `plot_ion_image()` draws its spatial ion image directly from `pkm`.
+This example, and every other real-data example in this vignette except the
+EIPS one above (see the note there for why), are not run on `example_pkm`,
+but on a real mouse brain tissue dataset (CHCA+DEA ionic matrix), acquired
+and originally published in Mahamdi et al. (2026) (see "References" at the
+end of this vignette) and used throughout the package's own validation
+work, **after the MALDI matrix pixels were removed** (the same matrix-removal analysis used to prepare figures for the
+associated manuscript) - matrix pixels otherwise tend to dominate a ring
+around the tissue section edge, which would be misleading in a
+feature-level ion image.
+
+The feature shown here, index 341 (m/z 212.0324 in that dataset), is one
+member of the adduct family revisited throughout the next few sections -
+its `[M+Na]+` form.
+
+```{r plot-ion-image-real, eval=FALSE}
+# `pkm_real` is the peak matrix underlying the real brain-tissue MALDI-MSI
+# dataset used for this package's validation work, with MALDI matrix pixels
+# removed, kept outside the package repository - this chunk is shown for
+# reference only (eval=FALSE) and was run once to produce the PNG rendered
+# below with knitr::include_graphics(), so the vignette itself never needs
+# to read that external file.
+plot_ion_image(pkm_real, idx = 341, clip_quantile = 0.99)
+```
+
+```{r plot-ion-image-real-show, echo=FALSE, eval=TRUE, out.width="70%"}
+knitr::include_graphics("../man/figures/vignette-ion-image-real.png")
+```
+
+`clip_quantile` caps the handful of most intense pixels before mapping to
+colour, so a few saturated spots do not flatten the rest of the scale.
 
 A feature can have more than one type of evidence. For example, the same m/z
 feature may be interpreted as a monoisotopic peak with C13 support and also as a member of an adduct family.
@@ -432,6 +716,43 @@ The filtered adduct edges assigned to a family — same columns as `adduct_edges
 
 - `family_id`: the family the edge was assigned to.
 
+## Visualising an adduct family
+
+`plot_adduct_family()` draws one ion-image panel per feature in a family,
+labelled with its adduct role, and arranged automatically into a grid. The
+example below uses the same neutral mass as "Visualising a single feature"
+and "Visualising a CIR-validated isotope pair" above, in the matrix-removed
+brain_2 result: a 6-member family (`family_id = 22`, `[M+H-H2O]+`/`[M+H]+`/
+`[M+Na]+`/`[M+K]+`/`[M+2Na-H]+`/`[M+2K-H]+`, consensus neutral mass
+189.0432). Its cross-database identity resolves to `KYNURENATE` in the
+standard-adduct library (`priority_score = 0.822`,
+`confidence_class = "cross_db_linked_adduct_recovered"`), and its
+`mean_score_adduct` (0.636) is among the highest of any family with more
+than 2 members in that dataset, so its member panels are a clear
+illustration of what a coherent family looks like spatially.
+
+```{r plot-adduct-family-real, eval=FALSE}
+# adduct_fam_real is res_real$adduct_families for the real brain_2 result
+# with matrix pixels removed.
+plot_adduct_family(
+  pkm_real,
+  family_id = 22,
+  adduct_fam = adduct_fam_real,
+  clip_quantile = 0.99
+)
+```
+
+```{r plot-adduct-family-real-show, echo=FALSE, eval=TRUE, out.width="85%"}
+knitr::include_graphics("../man/figures/vignette-adduct-family-real.png")
+```
+
+Four of the six features assigned to this family share essentially the same
+spatial distribution across the tissue section, which is the spatial
+signature `adduct_candidates()` looks for when proposing them as different
+adduct forms of the same inferred neutral mass in the first place; the
+`[M+2Na-H]+` and `[M+2K-H]+` panels are visibly noisier, consistent with
+their much lower mean intensity.
+
 # Peak relationship network
 
 It is possible to display interactive networks of the relationships detected by the workflow.
@@ -513,6 +834,54 @@ plot_peak_network(
 ```
 
 The network is intended as an exploratory visualisation. Connected features should be interpreted as putative evidence-supported relationships, not as definitive compound annotations.
+
+## Real-data example
+
+The three examples above run live on `example_pkm`, the small dataset
+bundled with the package. `plot_peak_network()` returns an interactive
+`visNetwork` htmlwidget that embeds its underlying node/edge data directly in
+the page, so this vignette does not build one from real analysis data - that
+would mean shipping real per-feature evidence values inside the package's
+own documentation. Instead, the figure below is a static screenshot of the
+same kind of focused adduct-family view as above, taken once from the real
+brain_2 result (matrix pixels removed), for the same family 22 used in
+"Visualising an adduct family":
+
+```{r peak-network-family-real, eval=FALSE}
+# res_real is the saved run_peakguider_workflow() result for the real
+# brain_2 dataset with matrix pixels removed. htmlwidgets::saveWidget()
+# writes the interactive widget to a standalone HTML file, which was then
+# opened in a browser to capture the static screenshot shown below (edge
+# labels turned off here, since they overlapped the nodes in this
+# particular layout).
+net <- plot_peak_network(
+  relation_table = res_real,
+  family_id = 22,
+  min_score = 0.5,
+  show_edge_labels = FALSE
+)
+htmlwidgets::saveWidget(net, "network_family22.html", selfcontained = TRUE)
+```
+
+```{r peak-network-family-real-show, echo=FALSE, eval=TRUE, out.width="55%"}
+knitr::include_graphics("../man/figures/vignette-peak-network-real.png")
+```
+
+The four edges reproduce the pairwise adduct relationships listed under
+`family_edges` for this family, as two separate connected components: a
+chain `206` ([M+H-H2O]+) - `272` ([M+H]+) - `341` - `415`, and a separate
+pair `395` - `512`; edge thickness reflects `score_adduct`.
+
+Features `341` and `512` both belong to more than one adduct family in this
+dataset (`341` to families 16, 22 and 28; `512` to 22 and 31). When a
+`family_id` is supplied, as here, every node is labelled with its role
+*within that family* - matching what "Visualising an adduct family" above
+shows for the same feature (`[M+Na]+` for `341`, `[M+2K-H]+` for `512`) -
+rather than whichever of its roles has the best `mean_edge_score` across the
+whole dataset. That dataset-wide role is still what is used when no
+`family_id` is given (the full evidence network further above); there,
+feature `341` would be labelled by its family-28 role and `512` by its
+family-31 role instead.
 
 # Neutral-mass candidates
 
@@ -715,3 +1084,17 @@ However:
 
 The recommended interpretation is to use PeakGuideR outputs to prioritise
 candidate annotations for downstream validation.
+
+# References
+
+The ion images shown in several of the real-data examples thoughout this
+vignette are extracted from the mouse brain tissue dataset published in
+Mahamdi et al. (2026), cited bellow. The rest of the vignette - the
+workflow itself, its parameters and every other table - is not specific to
+that dataset:
+
+Mahamdi, T.; Moltó, N.; Arasa, M.; Giné, R.; Rofes, J.; García-Altares, M.;
+Vinaixa, M.; Yanes, O. "Ionic Solid Matrices Applied via Low-Temperature
+Evaporation Enable High-Resolution and Sensitive MALDI Imaging of
+Metabolites." *J. Am. Soc. Mass Spectrom.* 2026.
+DOI: [10.1021/jasms.6c00219](https://doi.org/10.1021/jasms.6c00219).

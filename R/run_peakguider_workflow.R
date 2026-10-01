@@ -63,7 +63,42 @@
 #'   shows each image in its own panel. The default `FALSE` leaves the workflow
 #'   unchanged.
 #'
-#' @return A list with all main PeakGuideR workflow outputs.
+#' @return A list with all main PeakGuideR workflow outputs:
+#' \itemize{
+#'   \item `morph_results`: isotope-morphology candidates (the output of
+#'     `iso_morphology_candidates()`), one candidate peak pair per row.
+#'   \item `cir_results`: carbon isotope-ratio (CIR) validation for the
+#'     M0/M+1 pairs in `morph_results`, including optional M+2 support.
+#'   \item `eips_results`: elemental isotope-pattern (EIPS) validation for
+#'     N, O, S, Cl and Br.
+#'   \item `adduct_edges`: candidate adduct peak pairs, before grouping into
+#'     families.
+#'   \item `adduct_families`: adduct pairs grouped into families by
+#'     consensus neutral mass.
+#'   \item `relation_table`: a single table unifying every peak-to-peak
+#'     relation (CIR, isotope morphology, EIPS, adduct family).
+#'   \item `feature_summary`: one row per detected peak/feature, with the
+#'     role it plays in each type of evidence.
+#'   \item `neutral_mass_candidates`: a per-inferred-neutral-mass summary.
+#'   \item `candidate_annotations`: the final compound candidate
+#'     annotations (one row per neutral mass and candidate identity).
+#'   \item `pkm`: the peak matrix object used for the analysis (with
+#'     `image_id` added when `multi_image = TRUE`) - see the "Memory usage"
+#'     section below for why it can be worth freeing.
+#'   \item `parameters`: a list with every parameter value used for the call.
+#' }
+#'
+#' @section Memory usage:
+#' The returned `pkm` element is a copy of the `pkm` argument (with `image_id`
+#' attached when `multi_image = TRUE`), not a reference to it. For a real MSI
+#' dataset of several gigabytes, keeping both the original `pkm` object and
+#' `res$pkm` alive at the same time doubles that memory footprint for no
+#' benefit. Once `res$pkm` is no longer needed from `res` itself, it can be
+#' dropped with `res$pkm <- NULL` (followed by `gc()` if the memory needs to
+#' be returned to the OS immediately rather than whenever R next collects);
+#' the original `pkm` object already in the user's environment can still be
+#' passed directly to `plot_ion_image()`, `plot_isotope_pair()` and
+#' `plot_adduct_family()`.
 #'
 #' @examples
 #' \dontrun{

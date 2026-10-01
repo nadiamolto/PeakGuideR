@@ -30,11 +30,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Nadia Molto \email{nadia.molto@gmail.com} (\href{https://orcid.org/0009-0003-0042-4997}{ORCID})
+\strong{Maintainer}: Nadia Molt<c3><b3> \email{nadia.molto@gmail.com} (\href{https://orcid.org/0009-0003-0042-4997}{ORCID})
 
 Authors:
 \itemize{
-  \item Nadia Molto \email{nadia.molto@gmail.com} (\href{https://orcid.org/0009-0003-0042-4997}{ORCID})
+  \item Nadia Molt<c3><b3> \email{nadia.molto@gmail.com} (\href{https://orcid.org/0009-0003-0042-4997}{ORCID})
 }
 
 }

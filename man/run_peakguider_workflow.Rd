@@ -116,7 +116,30 @@ shows each image in its own panel. The default \code{FALSE} leaves the workflow
 unchanged.}
 }
 \value{
-A list with all main PeakGuideR workflow outputs.
+A list with all main PeakGuideR workflow outputs:
+\itemize{
+\item \code{morph_results}: isotope-morphology candidates (the output of
+\code{iso_morphology_candidates()}), one candidate peak pair per row.
+\item \code{cir_results}: carbon isotope-ratio (CIR) validation for the
+M0/M+1 pairs in \code{morph_results}, including optional M+2 support.
+\item \code{eips_results}: elemental isotope-pattern (EIPS) validation for
+N, O, S, Cl and Br.
+\item \code{adduct_edges}: candidate adduct peak pairs, before grouping into
+families.
+\item \code{adduct_families}: adduct pairs grouped into families by
+consensus neutral mass.
+\item \code{relation_table}: a single table unifying every peak-to-peak
+relation (CIR, isotope morphology, EIPS, adduct family).
+\item \code{feature_summary}: one row per detected peak/feature, with the
+role it plays in each type of evidence.
+\item \code{neutral_mass_candidates}: a per-inferred-neutral-mass summary.
+\item \code{candidate_annotations}: the final compound candidate
+annotations (one row per neutral mass and candidate identity).
+\item \code{pkm}: the peak matrix object used for the analysis (with
+\code{image_id} added when \code{multi_image = TRUE}) - see the "Memory usage"
+section below for why it can be worth freeing.
+\item \code{parameters}: a list with every parameter value used for the call.
+}
 }
 \description{
 Runs the main PeakGuideR workflow from either a PeakGuideR peak matrix object
@@ -127,6 +150,20 @@ validation, elemental isotope-pattern support, adduct candidate detection,
 adduct-family grouping, relation-table construction, feature-level
 summarization and neutral-mass candidate matching.
 }
+\section{Memory usage}{
+
+The returned \code{pkm} element is a copy of the \code{pkm} argument (with \code{image_id}
+attached when \code{multi_image = TRUE}), not a reference to it. For a real MSI
+dataset of several gigabytes, keeping both the original \code{pkm} object and
+\code{res$pkm} alive at the same time doubles that memory footprint for no
+benefit. Once \code{res$pkm} is no longer needed from \code{res} itself, it can be
+dropped with \code{res$pkm <- NULL} (followed by \code{gc()} if the memory needs to
+be returned to the OS immediately rather than whenever R next collects);
+the original \code{pkm} object already in the user's environment can still be
+passed directly to \code{plot_ion_image()}, \code{plot_isotope_pair()} and
+\code{plot_adduct_family()}.
+}
+
 \examples{
 \dontrun{
 data(example_pkm, package = "PeakGuideR")

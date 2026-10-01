@@ -1,6 +1,6 @@
 ---
 title: "access_to_databases"
-author: "Nadia Molt"
+author: "Nadia Moltó"
 date: "2026-06-17"
 output: html_document
 vignette: >

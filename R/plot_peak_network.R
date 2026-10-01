@@ -310,10 +310,19 @@ plot_peak_network <- function(
   # Add family/adduct metadata (if it is available...)
   if (!is.null(family_members) && is.data.frame(family_members)) {
     fm <- family_members |>
-      dplyr::filter(as.character(idx) %in% node_ids) |>
-      dplyr::group_by(idx) |>
-      dplyr::slice_max(order_by = mean_edge_score, n = 1, with_ties = FALSE) |>
-      dplyr::ungroup()
+      dplyr::filter(as.character(idx) %in% node_ids)
+
+    if (!is.null(family_id)) {
+      family_id_filter <- as.integer(family_id)
+
+      fm <- fm |>
+        dplyr::filter(.data$family_id %in% family_id_filter)
+    } else {
+      fm <- fm |>
+        dplyr::group_by(idx) |>
+        dplyr::slice_max(order_by = mean_edge_score, n = 1, with_ties = FALSE) |>
+        dplyr::ungroup()
+    }
 
     if (nrow(fm) > 0) {
       nodes <- nodes |>

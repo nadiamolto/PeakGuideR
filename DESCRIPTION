@@ -4,7 +4,7 @@ Version: 0.0.0.9000
 Authors@R: 
     c(person(
     given= "Nadia", 
-    family= "Molto", 
+    family= "Moltó",
     email= "nadia.molto@gmail.com",
     role = c("aut", "cre"),
     comment = c(ORCID= "0009-0003-0042-4997")))
