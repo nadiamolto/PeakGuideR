@@ -31,7 +31,8 @@ run_peakguider_workflow(
   top_n = 10L,
   include_single_adduct = TRUE,
   quiet = FALSE,
-  multi_image = FALSE
+  multi_image = FALSE,
+  mass_defect = TRUE
 )
 }
 \arguments{
@@ -114,6 +115,16 @@ relies on the global spatial score only. The per-pixel image identity is
 attached to the returned \code{pkm} as \code{image_id} so that \code{plot_ion_image()}
 shows each image in its own panel. The default \code{FALSE} leaves the workflow
 unchanged.}
+
+\item{mass_defect}{Logical. If \code{TRUE} (the default), a column
+\code{mass_defect_ok} is added at the end of \code{neutral_mass_candidates} and
+\code{candidate_annotations}. It flags whether the mass defect of each inferred
+neutral mass (\code{neutral_mass_consensus}) falls within the range observed
+among known compounds of the same integer mass: \code{TRUE} (within the
+range), \code{FALSE} (outside the range) or \code{NA} (mass missing or without a
+reference range; see the "Mass defect flag" section). The flag is
+informative only: it does not change any score, class or number of rows.
+If \code{FALSE}, the column is not added.}
 }
 \value{
 A list with all main PeakGuideR workflow outputs:
@@ -135,6 +146,9 @@ role it plays in each type of evidence.
 \item \code{neutral_mass_candidates}: a per-inferred-neutral-mass summary.
 \item \code{candidate_annotations}: the final compound candidate
 annotations (one row per neutral mass and candidate identity).
+
+When \code{mass_defect = TRUE}, both tables end with the \code{mass_defect_ok}
+column (see the \code{mass_defect} argument).
 \item \code{pkm}: the peak matrix object used for the analysis (with
 \code{image_id} added when \code{multi_image = TRUE}) - see the "Memory usage"
 section below for why it can be worth freeing.
@@ -150,6 +164,20 @@ validation, elemental isotope-pattern support, adduct candidate detection,
 adduct-family grouping, relation-table construction, feature-level
 summarization and neutral-mass candidate matching.
 }
+\section{Mass defect flag}{
+
+The mass defect of a neutral mass is its decimal part, \code{mass - floor(mass)},
+a value in [0, 1). The integer part is the integer mass the neutral mass
+belongs to (e.g., 130.0 and 130.9 both belong to 130).
+
+For each integer mass from 55 to 1300 Da, an internal reference table stores
+the minimum and the maximum mass defect observed among the HMDB and ChEBI
+entries of the compound mass database (see \code{data-raw/mass_defect_table.R}).
+A neutral mass is flagged \code{TRUE} if its mass defect is within the limits of
+its integer mass and \code{FALSE} otherwise. The reference table is fixed,
+whatever \code{compound_db} is used.
+}
+
 \section{Memory usage}{
 
 The returned \code{pkm} element is a copy of the \code{pkm} argument (with \code{image_id}

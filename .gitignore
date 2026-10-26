@@ -8,6 +8,5 @@ inst/doc
 *.Rcheck/
 
 docs
-.claude/
 /doc/
 /Meta/

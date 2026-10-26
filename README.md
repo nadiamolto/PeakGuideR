@@ -89,8 +89,8 @@ names(res)
 | Output | Description |
 |---|---|
 | `res$feature_summary` | One row per m/z feature, summarizing isotope, EIPS and adduct-family evidence |
-| `res$neutral_mass_candidates` | One row per inferred neutral mass and compound candidate |
-| `res$candidate_annotations` | Long-format table with one row per neutral mass, feature(s) and candidate identity (family- and single-adduct-derived), including resolved compound/standard identity and a weighted priority score |
+| `res$neutral_mass_candidates` | One row per inferred neutral mass and compound candidate, ending with a `mass_defect_ok` flag (whether the mass defect of the neutral mass is within the range observed among known compounds of the same integer mass) |
+| `res$candidate_annotations` | Long-format table with one row per neutral mass, feature(s) and candidate identity (family- and single-adduct-derived), including resolved compound/standard identity, a weighted priority score and the `mass_defect_ok` flag |
 | `res$relation_table` | Pairwise relationships between features |
 | `res$adduct_families` | Inferred adduct families and neutral masses |
 | `res$morph_results` | Isotope morphology results |
