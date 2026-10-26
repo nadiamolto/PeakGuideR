@@ -9,6 +9,7 @@
 <url><loc>https://nadiamolto.github.io/PeakGuideR/index.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/PeakGuideR-internal-data.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/PeakGuideR-package.html</loc></url>
+<url><loc>https://nadiamolto.github.io/PeakGuideR/reference/add_mass_defect_flag.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/adduct_candidates.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/adduct_families.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/adduct_introduced_eips_element.html</loc></url>
@@ -42,6 +43,9 @@
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/load_compound_mass_database.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/load_peakguider_databases.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/load_standards_adduct_library.html</loc></url>
+<url><loc>https://nadiamolto.github.io/PeakGuideR/reference/mass_defect_limits.html</loc></url>
+<url><loc>https://nadiamolto.github.io/PeakGuideR/reference/mass_defect_ok.html</loc></url>
+<url><loc>https://nadiamolto.github.io/PeakGuideR/reference/mass_defect_value.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/match_compound_db_by_mass.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/match_standards_by_mass.html</loc></url>
 <url><loc>https://nadiamolto.github.io/PeakGuideR/reference/parse_formula.html</loc></url>

@@ -86,7 +86,8 @@ summarization and neutral-mass candidate matching.</p>
 <span>  top_n <span class="op">=</span> <span class="fl">10L</span>,</span>
 <span>  include_single_adduct <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  multi_image <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  multi_image <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  mass_defect <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -227,6 +228,18 @@ attached to the returned <code>pkm</code> as <code>image_id</code> so that <code
 shows each image in its own panel. The default <code>FALSE</code> leaves the workflow
 unchanged.</p></dd>
 
+
+<dt id="arg-mass-defect">mass_defect<a class="anchor" aria-label="anchor" href="#arg-mass-defect"></a></dt>
+<dd><p>Logical. If <code>TRUE</code> (the default), a column
+<code>mass_defect_ok</code> is added at the end of <code>neutral_mass_candidates</code> and
+<code>candidate_annotations</code>. It flags whether the mass defect of each inferred
+neutral mass (<code>neutral_mass_consensus</code>) falls within the range observed
+among known compounds of the same integer mass: <code>TRUE</code> (within the
+range), <code>FALSE</code> (outside the range) or <code>NA</code> (mass missing or without a
+reference range; see the "Mass defect flag" section). The flag is
+informative only: it does not change any score, class or number of rows.
+If <code>FALSE</code>, the column is not added.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -246,12 +259,28 @@ relation (CIR, isotope morphology, EIPS, adduct family).</p></li>
 role it plays in each type of evidence.</p></li>
 <li><p><code>neutral_mass_candidates</code>: a per-inferred-neutral-mass summary.</p></li>
 <li><p><code>candidate_annotations</code>: the final compound candidate
-annotations (one row per neutral mass and candidate identity).</p></li>
+annotations (one row per neutral mass and candidate identity).</p>
+<p>When <code>mass_defect = TRUE</code>, both tables end with the <code>mass_defect_ok</code>
+column (see the <code>mass_defect</code> argument).</p></li>
 <li><p><code>pkm</code>: the peak matrix object used for the analysis (with
 <code>image_id</code> added when <code>multi_image = TRUE</code>) - see the "Memory usage"
 section below for why it can be worth freeing.</p></li>
 <li><p><code>parameters</code>: a list with every parameter value used for the call.</p></li>
 </ul></div>
+    <div class="section level2">
+    <h2 id="mass-defect-flag">Mass defect flag<a class="anchor" aria-label="anchor" href="#mass-defect-flag"></a></h2>
+
+
+<p>The mass defect of a neutral mass is its decimal part, <code>mass - floor(mass)</code>,
+a value in [0, 1). The integer part is the integer mass the neutral mass
+belongs to (e.g., 130.0 and 130.9 both belong to 130).</p>
+<p>For each integer mass from 55 to 1300 Da, an internal reference table stores
+the minimum and the maximum mass defect observed among the HMDB and ChEBI
+entries of the compound mass database (see <code>data-raw/mass_defect_table.R</code>).
+A neutral mass is flagged <code>TRUE</code> if its mass defect is within the limits of
+its integer mass and <code>FALSE</code> otherwise. The reference table is fixed,
+whatever <code>compound_db</code> is used.</p>
+    </div>
     <div class="section level2">
     <h2 id="memory-usage">Memory usage<a class="anchor" aria-label="anchor" href="#memory-usage"></a></h2>
 

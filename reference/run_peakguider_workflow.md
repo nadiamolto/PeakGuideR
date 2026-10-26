@@ -38,7 +38,8 @@ run_peakguider_workflow(
   top_n = 10L,
   include_single_adduct = TRUE,
   quiet = FALSE,
-  multi_image = FALSE
+  multi_image = FALSE,
+  mass_defect = TRUE
 )
 ```
 
@@ -184,6 +185,18 @@ run_peakguider_workflow(
   shows each image in its own panel. The default `FALSE` leaves the
   workflow unchanged.
 
+- mass_defect:
+
+  Logical. If `TRUE` (the default), a column `mass_defect_ok` is added
+  at the end of `neutral_mass_candidates` and `candidate_annotations`.
+  It flags whether the mass defect of each inferred neutral mass
+  (`neutral_mass_consensus`) falls within the range observed among known
+  compounds of the same integer mass: `TRUE` (within the range), `FALSE`
+  (outside the range) or `NA` (mass missing or without a reference
+  range; see the "Mass defect flag" section). The flag is informative
+  only: it does not change any score, class or number of rows. If
+  `FALSE`, the column is not added.
+
 ## Value
 
 A list with all main PeakGuideR workflow outputs:
@@ -215,11 +228,28 @@ A list with all main PeakGuideR workflow outputs:
 - `candidate_annotations`: the final compound candidate annotations (one
   row per neutral mass and candidate identity).
 
+  When `mass_defect = TRUE`, both tables end with the `mass_defect_ok`
+  column (see the `mass_defect` argument).
+
 - `pkm`: the peak matrix object used for the analysis (with `image_id`
   added when `multi_image = TRUE`) - see the "Memory usage" section
   below for why it can be worth freeing.
 
 - `parameters`: a list with every parameter value used for the call.
+
+## Mass defect flag
+
+The mass defect of a neutral mass is its decimal part,
+`mass - floor(mass)`, a value in \[0, 1). The integer part is the
+integer mass the neutral mass belongs to (e.g., 130.0 and 130.9 both
+belong to 130).
+
+For each integer mass from 55 to 1300 Da, an internal reference table
+stores the minimum and the maximum mass defect observed among the HMDB
+and ChEBI entries of the compound mass database (see
+`data-raw/mass_defect_table.R`). A neutral mass is flagged `TRUE` if its
+mass defect is within the limits of its integer mass and `FALSE`
+otherwise. The reference table is fixed, whatever `compound_db` is used.
 
 ## Memory usage
 

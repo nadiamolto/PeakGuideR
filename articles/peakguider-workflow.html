@@ -194,6 +194,9 @@ view);</li>
 table, including single-adduct hypotheses and priority scoring (see
 below).</li>
 </ul>
+<p>Both candidate tables end with a <code>mass_defect_ok</code> column
+that flags whether the mass defect of each inferred neutral mass is
+plausible (see “Mass defect flag” below).</p>
 <p>The evidence layers are built up in sequence, starting from isotope
 morphology and ending with adduct-family grouping, before the
 neutral-mass and candidate tables described later in this vignette are
@@ -444,6 +447,14 @@ and a per-pixel image identity is attached to the returned
 instead of overlapping them (see <code><a href="../reference/plot_ion_image.html">?plot_ion_image</a></code>). Default
 <code>FALSE</code>, which leaves the workflow exactly as it was in
 previous package versions.</li>
+<li>
+<code>mass_defect</code>: if <code>TRUE</code> (default), a
+<code>mass_defect_ok</code> column is added at the end of
+<code>neutral_mass_candidates</code> and
+<code>candidate_annotations</code> (see “Mass defect flag” below). It is
+informative only: no score, class or number of rows changes. Set to
+<code>FALSE</code> to leave both tables exactly as they were without the
+flag.</li>
 </ul>
 <p><strong>A note on memory.</strong> <code>res$pkm</code> (the list
 element returned alongside all the evidence tables above) is a full copy
@@ -1269,6 +1280,11 @@ alone.</li>
 <code>has_standard_adduct_match</code>: whether at least one
 inferred adduct is supported for that compound in the standard-adduct
 library.</li>
+<li>
+<code>mass_defect_ok</code>: whether the mass defect of
+<code>neutral_mass_consensus</code> falls within the range observed
+among known compounds of the same integer mass (see “Mass defect flag”
+below).</li>
 </ul>
 <p>The database match is mass-based and should be interpreted as a
 putative candidate, not as definitive identification. In particular,
@@ -1281,11 +1297,55 @@ identity-resolution logic and for cases flagged as
 <code>possible_link_formula_only</code>.</p>
 </div>
 <div class="section level2">
+<h2 id="mass-defect-flag">Mass defect flag<a class="anchor" aria-label="anchor" href="#mass-defect-flag"></a>
+</h2>
+<p>The mass defect of a neutral mass is its decimal part,
+<code>mass - floor(mass)</code>, a value between 0 and 1. The integer
+part is the integer mass the neutral mass belongs to: 130.0 and 130.9,
+for example, both belong to 130. The mass defect reflects the elemental
+composition of a molecule: hydrogen raises it, while oxygen, phosphorus,
+sulphur or halogens lower it. Metabolites of a given integer mass
+therefore fall in a characteristic range of mass defects, which allows a
+quick plausibility check of every inferred neutral mass without using a
+formula.</p>
+<p><code>mass_defect_ok</code> (added at the end of
+<code>neutral_mass_candidates</code> and
+<code>candidate_annotations</code>) takes one of three values:</p>
+<ul>
+<li>
+<code>TRUE</code>: the mass defect is within the range observed
+among known compounds of the same integer mass;</li>
+<li>
+<code>FALSE</code>: it is outside that range. This means the defect
+is unusual for compounds of that integer mass, not that the annotation
+is impossible;</li>
+<li>
+<code>NA</code>: the neutral mass is missing, outside the range of
+the reference table (55-1300 Da) or belongs to an integer mass without
+reference compounds, so it cannot be evaluated.</li>
+</ul>
+<p>An internal reference table
+(<code>data-raw/mass_defect_table.R</code>) holds, for every integer
+mass from 55 to 1300 Da, the minimum and the maximum mass defect
+observed among the HMDB and ChEBI entries of the compound mass database.
+Each <code>neutral_mass_consensus</code> is assigned to its integer
+mass, and its mass defect is compared with the limits of that integer
+mass.</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">neutral_mass_candidates</span><span class="op">$</span><span class="va">mass_defect_ok</span>, useNA <span class="op">=</span> <span class="st">"ifany"</span><span class="op">)</span></span></code></pre></div>
+<p>The flag is applied at the end of the workflow, on the inferred
+neutral masses, so it never alters the isotope, adduct or family
+evidence and does not modify any score. The reference table is fixed,
+whatever <code>compound_db</code> is used. Use
+<code>run_peakguider_workflow(mass_defect = FALSE)</code> to obtain the
+tables without the flag.</p>
+</div>
+<div class="section level2">
 <h2 id="summarising-candidate-matches">Summarising candidate matches<a class="anchor" aria-label="anchor" href="#summarising-candidate-matches"></a>
 </h2>
 <p>A quick summary of database and standard-adduct support can be
 obtained with:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">neutral_mass_candidates</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
 <span>    n_rows <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -1323,7 +1383,7 @@ then a shared HMDB/ChEBI id), stopping at the first level that matches.
 A match on molecular formula alone is never treated as identity; such
 candidates are kept as separate rows and cross-referenced through
 <code>possible_link_formula_only</code> for manual review.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span><span class="op">$</span><span class="va">candidate_annotations</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span>
 <span>    <span class="va">neutral_mass_id</span>,</span>
@@ -1422,18 +1482,18 @@ demonstration.</p>
 databases from Zenodo: <a href="https://doi.org/10.5281/zenodo.20705395" class="external-link uri">https://doi.org/10.5281/zenodo.20705395</a></p>
 <p>After downloading the files, they can be loaded manually replacing
 the paths below with the real local paths</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">compound_db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"path/to/compound_mass_database"</span><span class="op">)</span></span>
 <span><span class="va">standards_db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"path/to/adducts_database"</span><span class="op">)</span></span></code></pre></div>
 <p>or using the helper function (also replace the file paths below with
 the local paths where the downloaded database files were saved.:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dbs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_peakguider_databases.html">load_peakguider_databases</a></span><span class="op">(</span></span>
 <span>  compound_db_path <span class="op">=</span> <span class="st">"path/to/compound_mass_database.rds"</span>,</span>
 <span>  standards_db_path <span class="op">=</span> <span class="st">"path/to/standards_adduct_database.rds"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Then pass them to the workflow:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_peakguider_workflow.html">run_peakguider_workflow</a></span><span class="op">(</span></span>
 <span>  pkm <span class="op">=</span> <span class="va">pkm</span>,</span>
 <span>  ion_mode <span class="op">=</span> <span class="st">"pos"</span>,</span>
